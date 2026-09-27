@@ -1,5 +1,4 @@
 from sqlalchemy import Column, String, UUID, Numeric, Date
-from sqlalchemy.orm import relationship
 from app.database.connection import Base
 import uuid
 
