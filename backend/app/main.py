@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database.connection import engine, Base
 from app.routers.auth import router as auth_router
+from app.routers.cita import router as cita_router
 from app.models import (
     usuario, personal, paciente, odontologo, 
     cita, tratamiento, insumo, proveedor, pago
@@ -45,5 +46,6 @@ def root():
 def api_health():
     return {"status": "ok"}
 
-# Incluir router de autenticación bajo el prefijo /api
+# Incluir routers bajo el prefijo /api
 app.include_router(auth_router, prefix="/api")
+app.include_router(cita_router, prefix="/api")

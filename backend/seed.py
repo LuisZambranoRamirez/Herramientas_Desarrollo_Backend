@@ -1,5 +1,5 @@
 """
-Script para inicializar usuarios de prueba en la base de datos.
+Script para inicializar usuarios y datos de prueba en la base de datos.
 Ejecución:
     python backend/seed.py
 """
@@ -11,6 +11,8 @@ from datetime import datetime, date
 from app.database.connection import SessionLocal, engine, Base
 from app.models.usuario import Usuario, UserRole
 from app.models.paciente import Paciente
+from app.models.personal import Personal
+from app.models.odontologo import Odontologo, Especialidad
 from app.core.security import get_password_hash
 
 def seed():
@@ -71,9 +73,74 @@ def seed():
     else:
         print(f"El usuario '{paciente_username}' ya existe.")
 
+    # 3. Crear Odontólogos de prueba
+    odontologos_data = [
+        {
+            "dni": "80123456",
+            "username": "dr.mendoza",
+            "password": "Doctor123!",
+            "nombres": "Roberto",
+            "apellidos": "Mendoza Salcedo",
+            "telefono": "998877665",
+            "correo": "dr.mendoza@solident.pe",
+            "colegiatura": "COP-45892",
+            "especialidad": "ORTODONCIA"
+        },
+        {
+            "dni": "80654321",
+            "username": "dra.paredes",
+            "password": "Doctor123!",
+            "nombres": "Claudia",
+            "apellidos": "Paredes Vega",
+            "telefono": "994433221",
+            "correo": "dra.paredes@solident.pe",
+            "colegiatura": "COP-51204",
+            "especialidad": "ODONTOLOGIA_ESTETICA"
+        }
+    ]
+
+    for od in odontologos_data:
+        # Personal
+        pers = db.query(Personal).filter(Personal.dni == od["dni"]).first()
+        if not pers:
+            pers = Personal(
+                dni=od["dni"],
+                nombres=od["nombres"],
+                apellidos=od["apellidos"],
+                telefono=od["telefono"],
+                correo=od["correo"],
+                activo=True,
+                fecha_registro=now
+            )
+            db.add(pers)
+
+        # Usuario
+        usr = db.query(Usuario).filter(Usuario.username == od["username"]).first()
+        if not usr:
+            usr = Usuario(
+                username=od["username"],
+                password=get_password_hash(od["password"]),
+                activo=True,
+                user_role="ODONTOLOGO",
+                fecha_registro=now
+            )
+            db.add(usr)
+
+        # Odontólogo
+        odont = db.query(Odontologo).filter(Odontologo.dni == od["dni"]).first()
+        if not odont:
+            odont = Odontologo(
+                dni=od["dni"],
+                colegiatura=od["colegiatura"],
+                especialidad=od["especialidad"],
+                username=od["username"]
+            )
+            db.add(odont)
+            print(f"Odontólogo creado: Dr. {od['nombres']} {od['apellidos']} - {od['especialidad']} ({od['username']} / {od['password']})")
+
     db.commit()
     db.close()
-    print("Proceso de inicializacion finalizado exitosamente.")
+    print("Proceso de inicialización finalizado exitosamente.")
 
 if __name__ == "__main__":
     seed()
