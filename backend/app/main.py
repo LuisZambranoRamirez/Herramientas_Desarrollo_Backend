@@ -2,6 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database.connection import engine, Base
 from app.routers.auth import router as auth_router
+from app.routers.paciente import router as paciente_router
+from app.routers.odontologo import router as odontologo_router
 from app.routers.cita import router as cita_router
 from app.models import (
     usuario, personal, paciente, odontologo, 
@@ -48,4 +50,6 @@ def api_health():
 
 # Incluir routers bajo el prefijo /api
 app.include_router(auth_router, prefix="/api")
+app.include_router(paciente_router, prefix="/api")
+app.include_router(odontologo_router, prefix="/api")
 app.include_router(cita_router, prefix="/api")

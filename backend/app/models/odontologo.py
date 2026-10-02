@@ -1,9 +1,9 @@
-from sqlalchemy import Column, String, Enum, ForeignKey
+import enum
+from sqlalchemy import Column, String, ForeignKey
 from sqlalchemy.orm import relationship
 from app.database.connection import Base
-import enum
 
-class Especialidad(enum.Enum):
+class Especialidad(str, enum.Enum):
     ORTODONCIA = "ORTODONCIA"
     ENDODONCIA = "ENDODONCIA"
     PERIODONCIA = "PERIODONCIA"
@@ -18,7 +18,7 @@ class Odontologo(Base):
     
     dni = Column(String(8), ForeignKey("personal.dni"), primary_key=True)
     colegiatura = Column(String(50), nullable=False, unique=True)
-    especialidad = Column(Enum(Especialidad), nullable=False)
+    especialidad = Column(String(50), nullable=False)
     username = Column(String(50), ForeignKey("usuario.username"), nullable=False, unique=True)
     
     personal = relationship("Personal", back_populates="odontologo")
