@@ -8,18 +8,6 @@ from app.models.insumo import Insumo
 from app.models.proveedor import Proveedor
 from app.models.pago import Pago
 
-from app.models import (
-    usuario,
-    personal,
-    paciente,
-    odontologo,
-    cita,
-    tratamiento,
-    insumo,
-    proveedor,
-    pago,
-)
-
 __all__ = [
     "Usuario",
     "Personal",
@@ -30,13 +18,4 @@ __all__ = [
     "Insumo",
     "Proveedor",
     "Pago",
-    "usuario",
-    "personal",
-    "paciente",
-    "odontologo",
-    "cita",
-    "tratamiento",
-    "insumo",
-    "proveedor",
-    "pago",
 ]

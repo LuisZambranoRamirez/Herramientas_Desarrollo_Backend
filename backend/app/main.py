@@ -1,14 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database.connection import engine, Base
-from app.routers.auth import router as auth_router
-from app.routers.paciente import router as paciente_router
-from app.routers.odontologo import router as odontologo_router
-from app.routers.cita import router as cita_router
-from app.models import (
-    usuario, personal, paciente, odontologo, 
-    cita, tratamiento, insumo, proveedor, pago
-)
+from app.routers import api_router
+from app import models  # noqa: F401  (registra todos los modelos en Base.metadata)
 
 app = FastAPI(
     title="Solident API",
@@ -49,7 +43,4 @@ def api_health():
     return {"status": "ok"}
 
 # Incluir routers bajo el prefijo /api
-app.include_router(auth_router, prefix="/api")
-app.include_router(paciente_router, prefix="/api")
-app.include_router(odontologo_router, prefix="/api")
-app.include_router(cita_router, prefix="/api")
+app.include_router(api_router)
