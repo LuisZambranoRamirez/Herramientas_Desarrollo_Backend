@@ -9,7 +9,7 @@ from app.models.cita import Cita, EstadoCita
 from app.models.paciente import Paciente
 from app.models.odontologo import Odontologo
 from app.models.personal import Personal
-from app.routers.auth import get_current_user
+from app.core.dependencies import get_current_user
 from app.schemas.cita import (
     CitaCreate, 
     CitaUpdate, 

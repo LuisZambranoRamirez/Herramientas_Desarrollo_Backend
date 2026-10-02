@@ -7,7 +7,7 @@ from sqlalchemy import or_
 from app.database.connection import get_db
 from app.models.usuario import Usuario
 from app.models.paciente import Paciente
-from app.routers.auth import get_current_user
+from app.core.dependencies import get_current_user
 from app.core.security import get_password_hash
 from app.schemas.paciente import (
     PacienteCreate,

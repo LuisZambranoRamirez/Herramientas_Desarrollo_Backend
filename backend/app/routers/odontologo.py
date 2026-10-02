@@ -8,7 +8,7 @@ from app.database.connection import get_db
 from app.models.usuario import Usuario
 from app.models.personal import Personal
 from app.models.odontologo import Odontologo, Especialidad
-from app.routers.auth import get_current_user
+from app.core.dependencies import get_current_user
 from app.core.security import get_password_hash
 from app.schemas.odontologo import (
     OdontologoCreate,

@@ -1,8 +1,6 @@
 from datetime import datetime, date
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-import jwt
 
 from app.database.connection import get_db
 from app.models.usuario import Usuario
@@ -14,40 +12,10 @@ from app.schemas.auth import (
     RegistroPaciente, 
     RegistroPacienteResponse
 )
-from app.core.security import verify_password, get_password_hash, create_access_token, decode_access_token
+from app.core.security import verify_password, get_password_hash, create_access_token
+from app.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
-security = HTTPBearer()
-
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db)
-) -> Usuario:
-    """Valida el Bearer Token JWT y retorna el usuario autenticado desde la BD."""
-    token = credentials.credentials
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Credenciales de autenticación inválidas o expiradas",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = decode_access_token(token)
-        # pyrefly: ignore [bad-assignment]
-        username: str = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-    except (jwt.PyJWTError, Exception):
-        raise credentials_exception
-
-    user = db.query(Usuario).filter(Usuario.username == username).first()
-    if user is None:
-        raise credentials_exception
-    if not user.activo:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Usuario inactivo en el sistema"
-        )
-    return user
 
 @router.post("/login", response_model=LoginResponse)
 def login(credentials: LoginRequest, db: Session = Depends(get_db)):
