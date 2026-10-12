@@ -1,4 +1,5 @@
 from sqlalchemy import create_engine
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import config
@@ -7,27 +8,28 @@ from app.models.models import Base
 DATABASE_URL = config.DATABASE_URL
 
 if not DATABASE_URL:
-    raise RuntimeError("La variable DATABASE_URL no está configurada")
+    raise RuntimeError("La variable de conexión a PostgreSQL no está configurada")
 
-# Compatibilidad con URLs de PostgreSQL de Supabase.
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace(
-        "postgres://",
-        "postgresql+psycopg2://",
-        1,
-    )
-elif DATABASE_URL.startswith("postgresql://"):
-    DATABASE_URL = DATABASE_URL.replace(
-        "postgresql://",
-        "postgresql+psycopg2://",
-        1,
-    )
+# Normalizar la URL y eliminar parámetros no reconocidos
+# por psycopg2.
+url = make_url(DATABASE_URL)
+
+query = dict(url.query)
+query.pop("pgbouncer", None)
+query.pop("supa", None)
+
+url = url.set(query=query)
+
+# Usar explícitamente el controlador psycopg2.
+if url.drivername in ("postgres", "postgresql"):
+    url = url.set(drivername="postgresql+psycopg2")
 
 engine = create_engine(
-    DATABASE_URL,
+    url,
     pool_pre_ping=True,
     pool_size=2,
     max_overflow=0,
+    connect_args={"connect_timeout": 10},
 )
 
 SessionLocal = sessionmaker(
@@ -38,7 +40,7 @@ SessionLocal = sessionmaker(
 
 
 def init_db():
-    """Crea las tablas que aún no existan según los modelos registrados."""
+    """Crea las tablas que aún no existan."""
     Base.metadata.create_all(bind=engine)
 
 
