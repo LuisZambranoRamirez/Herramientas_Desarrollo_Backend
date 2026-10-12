@@ -1,66 +1,74 @@
-Instalación y ejecución
-Windows (PowerShell)
+# Instalación y ejecución
+
+## Windows (PowerShell)
 
 Ejecuta los siguientes comandos desde la raíz del repositorio:
 
-# 1. Crear el entorno virtual en la raíz del repositorio
+```bash
+# Crear el entorno virtual
 python -m venv .venv
 
-# 2. Activar el entorno virtual
-.\.venv\Scripts\Activate.ps1
+# Activar el entorno virtual
+.venv\Scripts\Activate.ps1
 
-# 3. Instalar las dependencias del backend
-pip install -r .\backend\requirements.txt
+# Instalar las dependencias
+pip install -r backend/requirements.txt
 
-# 4. Crear el archivo .env a partir del archivo de ejemplo
-Copy-Item .env.example .env
-
-# 5. Entrar en la carpeta del backend
+# Entrar en la carpeta del backend
 cd backend
 
-# 6. Iniciar el servidor de desarrollo
+# Iniciar el servidor de desarrollo
 uvicorn app.main:app --reload
+````
 
-Linux (Bash)
+## Linux (Bash)
 
 Ejecuta los siguientes comandos desde la raíz del repositorio:
 
-# 1. Crear el entorno virtual en la raíz del repositorio
+bash
+```
+# Crear el entorno virtual
 python3 -m venv .venv
 
-# 2. Activar el entorno virtual
+# Activar el entorno virtual
 source .venv/bin/activate
 
-# 3. Instalar las dependencias del backend
+# Instalar las dependencias
 pip install -r backend/requirements.txt
 
-# 4. Crear el archivo .env a partir del archivo de ejemplo
-cp .env.example .env
-
-# 5. Entrar en la carpeta del backend
+# Entrar en la carpeta del backend
 cd backend
 
-# 6. Iniciar el servidor de desarrollo
+# Iniciar el servidor de desarrollo
 uvicorn app.main:app --reload
+```
 
-Importante: estos comandos asumen que .env.example está en la raíz del repositorio. Antes de iniciar el servidor, configura en .env las credenciales y variables necesarias para MySQL. Si el archivo .env se crea por primera vez, revisa que no exista ya para evitar sobrescribir tu configuración.
-Acceso a la API
+Importante: estos comandos asumen que el archivo `requirements.txt` se encuentra en `backend/`. Configura las variables de entorno necesarias en `.env` antes de iniciar el servidor.
+
+## Acceso a la API
 
 Cuando el servidor esté iniciado, abre en el navegador:
 
-API: http://localhost:8000
-Swagger UI: http://localhost:8000/docs
-ReDoc: http://localhost:8000/redoc
-Cargar datos de prueba
+- API: [http://localhost:8000](<http://localhost:8000>)
+- Swagger UI: [http://localhost:8000/docs](<http://localhost:8000/docs>)
+- ReDoc: [http://localhost:8000/redoc](<http://localhost:8000/redoc>)
 
-Con el entorno virtual activado, ejecuta desde la carpeta backend/:
+## Cargar datos de prueba
 
+Con el entorno virtual activado, ejecuta desde la carpeta `backend/`:
+
+bash
+```
 # Cargar usuarios y datos de prueba en la base de datos
 python seed.py
+```
 
-Actualizar las dependencias
+## Actualizar las dependencias
 
-Después de instalar una nueva librería, ejecuta desde backend/:
+Después de instalar una nueva librería, ejecuta desde `backend/`:
 
+bash
+```
 # Guardar las dependencias instaladas y sus versiones
 pip freeze > requirements.txt
+```
