@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 import jwt
 
 from app.database.connection import get_db
-from app.models.usuario import Usuario
+from app.models.models import Usuario
 from app.core.security import decode_access_token
 
 security = HTTPBearer()
