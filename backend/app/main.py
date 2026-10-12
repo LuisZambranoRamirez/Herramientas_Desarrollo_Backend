@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database.connection import engine, Base
 from app.routers import api_router
 from app.core.exception_handlers import register_exception_handlers
+from contextlib import asynccontextmanager
+from app.database.connection import init_db
 
 app = FastAPI(
     title="Solident API",
@@ -26,14 +28,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.on_event("startup")
-def startup():
-    """Intenta inicializar las tablas de la base de datos al arrancar."""
-    try:
-        Base.metadata.create_all(bind=engine)
-        print("[OK] Base de datos conectada e inicializada correctamente")
-    except Exception as e:
-        print(f"[AVISO] No se pudo conectar a la base de datos en el inicio: {e}")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    print("Base de datos inicializada correctamente")
+    yield
 
 @app.get("/")
 def root():
