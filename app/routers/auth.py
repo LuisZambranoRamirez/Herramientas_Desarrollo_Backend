@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
-from backend.app.core.database import get_db
+from app.core.database import get_db
 from app.models.models import Usuario
 from app.schemas.auth import (
     LoginRequest,
