@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.app.core.database import engine, Base
+from backend.app.core.database import Base
 from app.routers import api_router
 from app.core.exception_handlers import register_exception_handlers
 from contextlib import asynccontextmanager
