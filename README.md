@@ -45,7 +45,7 @@ python -m venv .venv
 .venv\Scripts\Activate.ps1
 
 # Instalar las dependencias
-pip install -r backend/requirements.txt
+pip install -r requirements.txt
 
 # Iniciar el servidor de desarrollo
 uvicorn app.main:app --reload
@@ -64,7 +64,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 
 # Instalar las dependencias
-pip install -r backend/requirements.txt
+pip install -r requirements.txt
 
 # Iniciar el servidor de desarrollo
 uvicorn app.main:app --reload
