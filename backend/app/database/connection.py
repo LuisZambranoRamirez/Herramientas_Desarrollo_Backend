@@ -1,28 +1,45 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+
 from app.config import config
 
-# Configuración del motor SQLAlchemy para MySQL (o DATABASE_URL configurada)
 DATABASE_URL = config.DATABASE_URL
 
-connect_args = {}
-if "sqlite" in DATABASE_URL:
-    connect_args["check_same_thread"] = False
+if not DATABASE_URL:
+    raise RuntimeError("La variable DATABASE_URL no está configurada")
+
+# Compatibilidad con URLs de PostgreSQL de Supabase
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace(
+        "postgres://",
+        "postgresql+psycopg://",
+        1,
+    )
+elif DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace(
+        "postgresql://",
+        "postgresql+psycopg://",
+        1,
+    )
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args=connect_args,
     pool_pre_ping=True,
-    pool_recycle=3600
+    pool_recycle=300,
+    pool_size=2,
+    max_overflow=0,
+    pool_timeout=10,
 )
 
-# Sesión local
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+)
 
-# Base para los modelos declarativos
 Base = declarative_base()
 
-# Dependencia de sesión para FastAPI
+
 def get_db():
     db = SessionLocal()
     try:
