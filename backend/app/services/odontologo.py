@@ -6,7 +6,7 @@ from sqlalchemy import or_
 
 from app.models.models import Usuario
 from app.models.models import Personal
-from app.models.models import Odontologo, Especialidad
+from app.models.models import Odontologo, EspecialidadEnum
 from app.core.security import get_password_hash
 from app.schemas.odontologo import OdontologoCreate, OdontologoUpdate
 
@@ -33,7 +33,7 @@ def format_odontologo_response(o: Odontologo) -> dict:
     }
 
 def listar_especialidades() -> List[str]:
-    return [e.value for e in Especialidad]
+    return [e.value for e in EspecialidadEnum]
 
 def listar_odontologos(
     db: Session,
@@ -120,10 +120,10 @@ def registrar_odontologo(db: Session, data: OdontologoCreate, current_user: Usua
         )
 
     esp_upper = data.especialidad.upper()
-    if esp_upper not in [e.value for e in Especialidad]:
+    if esp_upper not in [e.value for e in EspecialidadEnum]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Especialidad no válida. Permitidas: {[e.value for e in Especialidad]}"
+            detail=f"Especialidad no válida. Permitidas: {[e.value for e in EspecialidadEnum]}"
         )
 
     now = datetime.utcnow()
@@ -219,10 +219,10 @@ def actualizar_odontologo(db: Session, dni: str, data: OdontologoUpdate, current
 
     if data.especialidad:
         esp_upper = data.especialidad.upper()
-        if esp_upper not in [e.value for e in Especialidad]:
+        if esp_upper not in [e.value for e in EspecialidadEnum]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Especialidad no válida. Permitidas: {[e.value for e in Especialidad]}"
+                detail=f"Especialidad no válida. Permitidas: {[e.value for e in EspecialidadEnum]}"
             )
         odontologo.especialidad = esp_upper
 
