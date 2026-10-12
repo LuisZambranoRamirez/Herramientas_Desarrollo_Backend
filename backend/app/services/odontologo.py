@@ -4,9 +4,9 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
-from app.models.usuario import Usuario
-from app.models.personal import Personal
-from app.models.odontologo import Odontologo, Especialidad
+from app.models.models import Usuario
+from app.models.models import Personal
+from app.models.models import Odontologo, Especialidad
 from app.core.security import get_password_hash
 from app.schemas.odontologo import OdontologoCreate, OdontologoUpdate
 
