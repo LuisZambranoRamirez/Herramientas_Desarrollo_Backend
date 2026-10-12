@@ -9,10 +9,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
 
 from datetime import datetime, date
 from app.database.connection import SessionLocal, engine, Base
-from app.models.usuario import Usuario, UserRole
-from app.models.paciente import Paciente
-from app.models.personal import Personal
-from app.models.odontologo import Odontologo, Especialidad
+from app.models.models import Usuario, UserRole
+from app.models.models import Paciente
+from app.models.models import Personal
+from app.models.models import Odontologo, Especialidad
 from app.core.security import get_password_hash
 
 def seed():
