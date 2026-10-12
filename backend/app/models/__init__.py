@@ -1,12 +1,12 @@
-from app.models.usuario import Usuario
-from app.models.personal import Personal
-from app.models.paciente import Paciente
-from app.models.odontologo import Odontologo
-from app.models.cita import Cita
-from app.models.tratamiento import TratamientoPaciente
-from app.models.insumo import Insumo
-from app.models.proveedor import Proveedor
-from app.models.pago import Pago
+from app.models.models import Usuario
+from app.models.models import Personal
+from app.models.models import Paciente
+from app.models.models import Odontologo
+from app.models.models import Cita
+from app.models.models import TratamientoPaciente
+from app.models.models import Insumo
+from app.models.models import Proveedor
+from app.models.models import Pago
 
 __all__ = [
     "Usuario",
