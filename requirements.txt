@@ -18,7 +18,7 @@ psycopg2-binary==2.9.13
 pycparser==3.11
 pydantic==2.14.0
 pydantic_core==2.50.0
-PyJWT==2.15.1
+pyjwt==2.15.1
 PyMySQL==1.2.3
 python-dotenv==1.2.4
 sqlacodegen==4.0.4
