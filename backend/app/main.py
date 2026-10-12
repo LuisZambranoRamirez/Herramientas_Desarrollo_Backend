@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database.connection import engine, Base
 from app.routers import api_router
-from app import models  # noqa: F401  (registra todos los modelos en Base.metadata)
 from app.core.exception_handlers import register_exception_handlers
 
 app = FastAPI(
