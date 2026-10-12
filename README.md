@@ -47,9 +47,6 @@ python -m venv .venv
 # Instalar las dependencias
 pip install -r backend/requirements.txt
 
-# Entrar en la carpeta del backend
-cd backend
-
 # Iniciar el servidor de desarrollo
 uvicorn app.main:app --reload
 ````
@@ -68,9 +65,6 @@ source .venv/bin/activate
 
 # Instalar las dependencias
 pip install -r backend/requirements.txt
-
-# Entrar en la carpeta del backend
-cd backend
 
 # Iniciar el servidor de desarrollo
 uvicorn app.main:app --reload
