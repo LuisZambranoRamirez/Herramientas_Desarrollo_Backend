@@ -2,8 +2,8 @@ from datetime import datetime
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.models.usuario import Usuario
-from app.models.paciente import Paciente
+from app.models.models import Usuario
+from app.models.models import Paciente
 from app.schemas.auth import LoginRequest, RegistroPaciente
 from app.core.security import verify_password, get_password_hash, create_access_token
 
