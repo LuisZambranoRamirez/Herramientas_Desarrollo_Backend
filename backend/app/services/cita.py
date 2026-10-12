@@ -4,7 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.models import Usuario
-from app.models.models import Cita, EstadoCita
+from app.models.models import Cita, EstadoCitaEnum
 from app.models.models import Paciente
 from app.models.models import Odontologo
 from app.models.models import Personal
@@ -140,7 +140,7 @@ def agendar_cita(db: Session, data: CitaCreate, current_user: Usuario) -> dict:
         fecha=data.fecha,
         hora=data.hora,
         motivo_consulta=data.motivo_consulta,
-        estado=EstadoCita.PROGRAMADA.value,
+        estado=EstadoCitaEnum.PROGRAMADA.value,
         fecha_registro=datetime.utcnow()
     )
 
@@ -242,10 +242,10 @@ def actualizar_estado_cita(db: Session, cita_id: str, data: CitaEstadoUpdate, cu
             )
 
     estado_upper = data.estado.upper()
-    if estado_upper not in EstadoCita.__members__:
+    if estado_upper not in EstadoCitaEnum.__members__:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Estado inválido. Opciones permitidas: {list(EstadoCita.__members__.keys())}"
+            detail=f"Estado inválido. Opciones permitidas: {list(EstadoCitaEnum.__members__.keys())}"
         )
 
     cita.estado = estado_upper
@@ -272,7 +272,7 @@ def cancelar_cita(db: Session, cita_id: str, current_user: Usuario) -> dict:
                 detail="No tienes permiso para cancelar esta cita"
             )
 
-    cita.estado = EstadoCita.CANCELADA.value
+    cita.estado = EstadoCitaEnum.CANCELADA.value
     db.commit()
     db.refresh(cita)
     return format_cita_response(cita)
