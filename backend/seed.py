@@ -8,7 +8,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
 
 from datetime import datetime, date
-from app.database.connection import SessionLocal, engine, Base
+from backend.app.core.database import SessionLocal, engine, Base
 from app.models.models import Usuario, UserRole
 from app.models.models import Paciente
 from app.models.models import Personal
