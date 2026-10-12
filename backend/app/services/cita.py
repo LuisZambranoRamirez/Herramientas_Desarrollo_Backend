@@ -3,11 +3,11 @@ from typing import List, Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
-from app.models.usuario import Usuario
-from app.models.cita import Cita, EstadoCita
-from app.models.paciente import Paciente
-from app.models.odontologo import Odontologo
-from app.models.personal import Personal
+from app.models.models import Usuario
+from app.models.models import Cita, EstadoCita
+from app.models.models import Paciente
+from app.models.models import Odontologo
+from app.models.models import Personal
 from app.schemas.cita import CitaCreate, CitaEstadoUpdate
 
 def format_cita_response(cita: Cita) -> dict:
