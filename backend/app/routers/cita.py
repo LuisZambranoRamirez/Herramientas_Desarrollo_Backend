@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.orm import Session
 
 from app.database.connection import get_db
-from app.models.usuario import Usuario
+from app.models.models import Usuario
 from app.core.dependencies import get_current_user
 from app.schemas.cita import (
     CitaCreate,
