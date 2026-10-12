@@ -1,15 +1,23 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.database import Base
 from app.routers import api_router
 from app.core.exception_handlers import register_exception_handlers
 from contextlib import asynccontextmanager
 from app.core.database import init_db
 
+# 1. Definimos el lifespan PRIMERO para que exista antes de usarlo
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    print("Base de datos inicializada correctamente")
+    yield
+
+# 2. Ahora sí podemos pasarle el lifespan a la app
 app = FastAPI(
     title="Solident API",
     version="1.0.0",
-    description="API Backend para el sistema odontológico Solident"
+    description="API Backend para el sistema odontológico Solident",
+    lifespan=lifespan  
 )
 
 register_exception_handlers(app)
@@ -27,12 +35,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    init_db()
-    print("Base de datos inicializada correctamente")
-    yield
 
 @app.get("/")
 def root():
