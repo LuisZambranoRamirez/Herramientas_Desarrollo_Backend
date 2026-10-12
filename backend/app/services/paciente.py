@@ -4,8 +4,8 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
-from app.models.usuario import Usuario
-from app.models.paciente import Paciente
+from app.models.models import Usuario
+from app.models.models import Paciente
 from app.core.security import get_password_hash
 from app.schemas.paciente import PacienteCreate, PacienteUpdate
 
