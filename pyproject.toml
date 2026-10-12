@@ -1,3 +1,14 @@
+[project]
+name = "herramientas-desarrollo-backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "sqlalchemy",
+    "psycopg2-binary",
+    "pydantic-settings",
+]
+
 [tool.pyrefly]
-python-interpreter-path = "backend/.venv/Scripts/python.exe"
-search-path = ["backend"]
+search-path = ["."]
