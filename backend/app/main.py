@@ -1,10 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.database.connection import engine, Base
+from backend.app.core.database import engine, Base
 from app.routers import api_router
 from app.core.exception_handlers import register_exception_handlers
 from contextlib import asynccontextmanager
-from app.database.connection import init_db
+from backend.app.core.database import init_db
 
 app = FastAPI(
     title="Solident API",
