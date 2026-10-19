@@ -11,25 +11,21 @@ from app.core.security import get_password_hash
 from app.schemas.odontologo import OdontologoCreate, OdontologoUpdate
 
 def format_odontologo_response(o: Odontologo) -> dict:
+    # Odontologo hereda de Personal (herencia por tablas unidas):
+    # nombres, apellidos, telefono, correo, activo y fecha_registro viven en el mismo objeto.
     esp = o.especialidad.value if hasattr(o.especialidad, "value") else str(o.especialidad)
-    nombres = o.personal.nombres if o.personal else ""
-    apellidos = o.personal.apellidos if o.personal else ""
-    telefono = o.personal.telefono if o.personal else ""
-    correo = o.personal.correo if o.personal else ""
-    activo = o.personal.activo if o.personal else True
-    fecha_reg = o.personal.fecha_registro if o.personal else datetime.utcnow()
 
     return {
         "dni": o.dni,
         "username": o.username,
-        "nombres": nombres,
-        "apellidos": apellidos,
-        "telefono": telefono,
-        "correo": correo,
+        "nombres": o.nombres,
+        "apellidos": o.apellidos,
+        "telefono": o.telefono,
+        "correo": o.correo,
         "colegiatura": o.colegiatura,
         "especialidad": esp,
-        "activo": activo,
-        "fecha_registro": fecha_reg
+        "activo": o.activo,
+        "fecha_registro": o.fecha_registro,
     }
 
 def listar_especialidades() -> List[str]:
@@ -41,13 +37,14 @@ def listar_odontologos(
     activo: Optional[bool] = None,
     query: Optional[str] = None
 ) -> List[dict]:
-    q = db.query(Odontologo).join(Personal, Odontologo.dni == Personal.dni)
+    # Odontologo ya incluye las columnas de Personal (JOIN automático por herencia)
+    q = db.query(Odontologo)
 
     if especialidad:
         q = q.filter(Odontologo.especialidad == especialidad.upper())
 
     if activo is not None:
-        q = q.filter(Personal.activo == activo)
+        q = q.filter(Odontologo.activo == activo)
 
     if query:
         search_filter = f"%{query.strip()}%"
@@ -55,12 +52,12 @@ def listar_odontologos(
             or_(
                 Odontologo.dni.ilike(search_filter),
                 Odontologo.colegiatura.ilike(search_filter),
-                Personal.nombres.ilike(search_filter),
-                Personal.apellidos.ilike(search_filter)
+                Odontologo.nombres.ilike(search_filter),
+                Odontologo.apellidos.ilike(search_filter)
             )
         )
 
-    odontologos = q.order_by(Personal.apellidos.asc(), Personal.nombres.asc()).all()
+    odontologos = q.order_by(Odontologo.apellidos.asc(), Odontologo.nombres.asc()).all()
     return [format_odontologo_response(o) for o in odontologos]
 
 def obtener_perfil_odontologo(db: Session, current_user: Usuario) -> dict:
@@ -128,18 +125,7 @@ def registrar_odontologo(db: Session, data: OdontologoCreate, current_user: Usua
 
     now = datetime.utcnow()
 
-    # 1. Crear Personal
-    new_personal = Personal(
-        dni=data.dni,
-        nombres=data.nombres,
-        apellidos=data.apellidos,
-        telefono=data.telefono,
-        correo=data.correo,
-        activo=True,
-        fecha_registro=now
-    )
-
-    # 2. Crear Usuario
+    # 1. Crear Usuario
     new_usuario = Usuario(
         username=data.username,
         password=get_password_hash(data.password),
@@ -148,16 +134,22 @@ def registrar_odontologo(db: Session, data: OdontologoCreate, current_user: Usua
         fecha_registro=now
     )
 
-    # 3. Crear Odontólogo
+    # 2. Crear Odontólogo. Por la herencia con Personal, SQLAlchemy inserta
+    #    automáticamente la fila en `personal` y luego en `odontologo`.
     new_odontologo = Odontologo(
         dni=data.dni,
+        nombres=data.nombres,
+        apellidos=data.apellidos,
+        telefono=data.telefono,
+        correo=data.correo,
+        activo=True,
+        fecha_registro=now,
         colegiatura=data.colegiatura,
         especialidad=esp_upper,
         username=data.username
     )
 
     try:
-        db.add(new_personal)
         db.add(new_usuario)
         db.add(new_odontologo)
         db.commit()
@@ -185,12 +177,7 @@ def actualizar_odontologo(db: Session, dni: str, data: OdontologoUpdate, current
             detail="No tienes permiso para modificar los datos de este odontólogo"
         )
 
-    personal = odontologo.personal
-    if not personal:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Registro de datos personales no encontrado"
-        )
+    personal = odontologo  # los datos personales viven en el mismo objeto (herencia)
 
     # Validar unicidad si cambia correo o teléfono
     if data.correo and data.correo != personal.correo:
@@ -253,8 +240,7 @@ def cambiar_estado_odontologo(db: Session, dni: str, activo: bool, current_user:
             detail=f"Odontólogo con DNI {dni} no encontrado"
         )
 
-    if odontologo.personal:
-        odontologo.personal.activo = activo
+    odontologo.activo = activo
     if odontologo.usuario:
         odontologo.usuario.activo = activo
 
