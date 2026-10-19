@@ -2,6 +2,13 @@ from datetime import date, datetime
 from typing import Optional, Union, Any
 from pydantic import BaseModel, ConfigDict, field_validator
 
+def _vacio_a_none(v: Any) -> Any:
+    """Convierte '' en None: direccion, telefono y correo son UNIQUE en la BD,
+    así que dos pacientes con '' chocarían entre sí."""
+    if isinstance(v, str) and not v.strip():
+        return None
+    return v.strip() if isinstance(v, str) else v
+
 class PacienteBase(BaseModel):
     nombres: str
     apellidos: str
@@ -10,6 +17,11 @@ class PacienteBase(BaseModel):
     direccion: Optional[str] = None
     observaciones: Optional[str] = ""
     fecha_nacimiento: date
+
+    @field_validator("telefono", "correo", "direccion", mode="before")
+    @classmethod
+    def normalizar_vacios(cls, v: Any) -> Any:
+        return _vacio_a_none(v)
 
 class PacienteCreate(PacienteBase):
     dni: str
@@ -24,6 +36,11 @@ class PacienteUpdate(BaseModel):
     direccion: Optional[str] = None
     observaciones: Optional[str] = None
     fecha_nacimiento: Optional[date] = None
+
+    @field_validator("telefono", "correo", "direccion", mode="before")
+    @classmethod
+    def normalizar_vacios(cls, v: Any) -> Any:
+        return _vacio_a_none(v)
 
 class PacienteResponse(PacienteBase):
     dni: str

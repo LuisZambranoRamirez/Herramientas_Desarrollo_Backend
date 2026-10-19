@@ -7,8 +7,7 @@ from app.models.models import Usuario
 from app.models.models import Cita, EstadoCitaEnum
 from app.models.models import Paciente
 from app.models.models import Odontologo
-from app.models.models import Personal
-from app.schemas.cita import CitaCreate, CitaEstadoUpdate
+from app.schemas.cita import CitaCreate, CitaEstadoUpdate, CitaUpdate
 
 def format_cita_response(cita: Cita) -> dict:
     """Transforma un modelo Cita a diccionario con datos de relaciones."""
@@ -29,12 +28,11 @@ def format_cita_response(cita: Cita) -> dict:
             if hasattr(cita.odontologo.especialidad, "value")
             else str(cita.odontologo.especialidad)
         )
-        nombres = cita.odontologo.personal.nombres if cita.odontologo.personal else ""
-        apellidos = cita.odontologo.personal.apellidos if cita.odontologo.personal else ""
+        # Odontologo hereda de Personal: nombres y apellidos están en el mismo objeto
         odontologo_data = {
             "dni": cita.odontologo.dni,
-            "nombres": nombres,
-            "apellidos": apellidos,
+            "nombres": cita.odontologo.nombres,
+            "apellidos": cita.odontologo.apellidos,
             "especialidad": esp,
             "colegiatura": cita.odontologo.colegiatura
         }
@@ -63,15 +61,16 @@ def _query_citas_con_relaciones(db: Session):
         db.query(Cita)
         .options(
             joinedload(Cita.paciente),
-            joinedload(Cita.odontologo).joinedload(Odontologo.personal)
+            joinedload(Cita.odontologo)
         )
     )
 
 def listar_odontologos_disponibles(db: Session) -> List[dict]:
+    # Odontologo ya incluye las columnas de Personal (JOIN automático por herencia)
     odontologos = (
         db.query(Odontologo)
-        .join(Personal, Odontologo.dni == Personal.dni)
-        .filter(Personal.activo == True)
+        .filter(Odontologo.activo == True)
+        .order_by(Odontologo.apellidos.asc(), Odontologo.nombres.asc())
         .all()
     )
 
@@ -80,8 +79,8 @@ def listar_odontologos_disponibles(db: Session) -> List[dict]:
         esp = o.especialidad.value if hasattr(o.especialidad, "value") else str(o.especialidad)
         resultado.append({
             "dni": o.dni,
-            "nombres": o.personal.nombres if o.personal else "",
-            "apellidos": o.personal.apellidos if o.personal else "",
+            "nombres": o.nombres,
+            "apellidos": o.apellidos,
             "especialidad": esp,
             "colegiatura": o.colegiatura
         })
@@ -140,6 +139,7 @@ def agendar_cita(db: Session, data: CitaCreate, current_user: Usuario) -> dict:
         fecha=data.fecha,
         hora=data.hora,
         motivo_consulta=data.motivo_consulta,
+        diagnostico=(data.diagnostico or None),
         estado=EstadoCitaEnum.PROGRAMADA.value,
         fecha_registro=datetime.utcnow()
     )
@@ -275,4 +275,67 @@ def cancelar_cita(db: Session, cita_id: str, current_user: Usuario) -> dict:
     cita.estado = EstadoCitaEnum.CANCELADA.value
     db.commit()
     db.refresh(cita)
+    return format_cita_response(cita)
+
+
+def actualizar_cita(db: Session, cita_id: str, data: CitaUpdate, current_user: Usuario) -> dict:
+    """Edita / reprograma una cita. Solo personal (administrador u odontólogo)."""
+    if current_user.user_role == "PACIENTE":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Los pacientes no pueden modificar citas; solo cancelarlas"
+        )
+
+    cita = db.query(Cita).filter(Cita.cita_id == cita_id).first()
+    if not cita:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Cita no encontrada"
+        )
+
+    nuevo_odontologo = data.dni_odontologo or cita.dni_odontologo
+    nueva_fecha = data.fecha or cita.fecha
+    nueva_hora = data.hora if data.hora is not None else cita.hora
+
+    if data.dni_odontologo and not db.query(Odontologo).filter(Odontologo.dni == data.dni_odontologo).first():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="El odontólogo seleccionado no existe"
+        )
+
+    estado_final = (data.estado or (cita.estado.value if hasattr(cita.estado, "value") else str(cita.estado))).upper()
+    if estado_final not in EstadoCitaEnum.__members__:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Estado inválido. Opciones permitidas: {list(EstadoCitaEnum.__members__.keys())}"
+        )
+
+    # Evitar doble cita del odontólogo en la misma fecha/hora (excluye esta cita)
+    if estado_final not in ("CANCELADA", "NO_ASISTIO"):
+        conflicto = db.query(Cita).filter(
+            Cita.cita_id != cita.cita_id,
+            Cita.dni_odontologo == nuevo_odontologo,
+            Cita.fecha == nueva_fecha,
+            Cita.hora == nueva_hora,
+            Cita.estado.notin_(["CANCELADA", "NO_ASISTIO"])
+        ).first()
+        if conflicto:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="El odontólogo ya tiene una cita programada para esa fecha y hora"
+            )
+
+    cita.dni_odontologo = nuevo_odontologo
+    cita.fecha = nueva_fecha
+    cita.hora = nueva_hora
+    cita.estado = estado_final
+    if data.motivo_consulta is not None:
+        cita.motivo_consulta = data.motivo_consulta
+    if data.diagnostico is not None:
+        cita.diagnostico = data.diagnostico or None
+
+    db.commit()
+    # Recargar con relaciones para que la respuesta traiga paciente y odontólogo actualizados
+    db.expire_all()
+    cita = _query_citas_con_relaciones(db).filter(Cita.cita_id == cita_id).first()
     return format_cita_response(cita)
