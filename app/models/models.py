@@ -71,7 +71,7 @@ class TratamientoOdontologicoEnum(str, enum.Enum):
 
 
 class UserRoleEnum(str, enum.Enum):
-    SYSTEM_ADMIN = 'SYSTEM_ADMIN'
+    SYSTEM_ADMIN = 'ADMIN'
     ODONTOLOGO = 'ODONTOLOGO'
     PACIENTE = 'PACIENTE'
 
