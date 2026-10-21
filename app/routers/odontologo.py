@@ -15,7 +15,9 @@ from app.services import odontologo as odontologo_service
 router = APIRouter(prefix="/odontologos", tags=["Odontólogos"])
 
 @router.get("/especialidades", response_model=List[str])
-def listar_especialidades():
+def listar_especialidades(
+    current_user: Usuario = Depends(get_current_user)
+):
     """
     Retorna la lista de todas las especialidades odontológicas disponibles.
     """
@@ -26,6 +28,7 @@ def listar_odontologos(
     especialidad: Optional[str] = Query(None, description="Filtrar por especialidad"),
     activo: Optional[bool] = Query(None, description="Filtrar por estado activo"),
     query: Optional[str] = Query(None, description="Búsqueda por nombre, apellido, DNI o colegiatura"),
+    current_user: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -46,6 +49,7 @@ def obtener_mi_perfil_odontologo(
 @router.get("/{dni}", response_model=OdontologoResponse)
 def obtener_odontologo_por_dni(
     dni: str,
+    current_user: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """

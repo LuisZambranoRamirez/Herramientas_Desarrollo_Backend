@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -123,7 +123,7 @@ def registrar_odontologo(db: Session, data: OdontologoCreate, current_user: Usua
             detail=f"Especialidad no válida. Permitidas: {[e.value for e in EspecialidadEnum]}"
         )
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     # 1. Crear Usuario
     new_usuario = Usuario(
@@ -154,11 +154,11 @@ def registrar_odontologo(db: Session, data: OdontologoCreate, current_user: Usua
         db.add(new_odontologo)
         db.commit()
         db.refresh(new_odontologo)
-    except Exception as e:
+    except Exception:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al registrar odontólogo: {str(e)}"
+            detail="Ocurrió un error interno al registrar el odontólogo."
         )
 
     return format_odontologo_response(new_odontologo)

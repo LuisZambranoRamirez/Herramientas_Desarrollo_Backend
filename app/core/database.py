@@ -7,8 +7,6 @@ from app.models.models import Base
 
 DATABASE_URL = config.DATABASE_URL
 
-if not DATABASE_URL:
-    raise RuntimeError("La variable de conexión a PostgreSQL no está configurada")
 
 # Normalizar la URL y eliminar parámetros no reconocidos
 # por psycopg2.
@@ -27,8 +25,8 @@ if url.drivername in ("postgres", "postgresql"):
 engine = create_engine(
     url,
     pool_pre_ping=True,
-    pool_size=2,
-    max_overflow=0,
+    pool_size=5,
+    max_overflow=10,
     connect_args={"connect_timeout": 10},
 )
 

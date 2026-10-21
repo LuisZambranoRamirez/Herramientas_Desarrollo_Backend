@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -115,7 +115,7 @@ def registrar_paciente(db: Session, data: PacienteCreate, current_user: Usuario)
         )
 
     raw_password = data.password or data.dni
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     new_user = Usuario(
         username=username,
@@ -144,11 +144,11 @@ def registrar_paciente(db: Session, data: PacienteCreate, current_user: Usuario)
         db.commit()
         db.refresh(new_user)
         db.refresh(new_paciente)
-    except Exception as e:
+    except Exception:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al registrar paciente: {str(e)}"
+            detail="Ocurrió un error interno al registrar el paciente."
         )
 
     return format_paciente_response(new_paciente)

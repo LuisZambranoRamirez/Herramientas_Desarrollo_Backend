@@ -19,7 +19,10 @@ from app.services import cita as cita_service
 router = APIRouter(prefix="/citas", tags=["Citas Odontológicas"])
 
 @router.get("/odontologos", response_model=List[OdontologoSimpleResponse])
-def listar_odontologos_disponibles(db: Session = Depends(get_db)):
+def listar_odontologos_disponibles(
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     Lista todos los odontólogos registrados y activos para seleccionar al agendar citas.
     """

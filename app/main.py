@@ -4,6 +4,7 @@ from app.routers import api_router
 from app.core.exception_handlers import register_exception_handlers
 from contextlib import asynccontextmanager
 from app.core.database import init_db
+from app.core.config import config
 
 # 1. Definimos el lifespan PRIMERO para que exista antes de usarlo
 @asynccontextmanager
@@ -22,15 +23,10 @@ app = FastAPI(
 
 register_exception_handlers(app)
 
-# Middleware de CORS para conexión con frontend en Vue 3
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
-
+# Middleware de CORS para conexión con frontend (Vue 3 / Vite)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=config.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
