@@ -56,7 +56,7 @@ class MetodoPagoEnum(str, enum.Enum):
 
 class PermisosEnum(str, enum.Enum):
     LEER = 'LEER'
-    ACTULIZAR = 'ACTULIZAR'
+    ACTUALIZAR = 'ACTUALIZAR'
     ELIMINAR = 'ELIMINAR'
     CREAR = 'CREAR'
 
