@@ -29,7 +29,6 @@ class CitaCreate(BaseModel):
     fecha: date
     hora: Union[time, str]
     motivo_consulta: str
-    diagnostico: Optional[str] = None   # Notas / observaciones clínicas (opcional)
     dni_paciente: Optional[str] = None  # Opcional: si el usuario es paciente se toma de su sesión
 
     @field_validator("dni_odontologo", "dni_paciente")
@@ -56,8 +55,6 @@ class CitaCreate(BaseModel):
 
 # Esquema para actualizar datos de una cita
 class CitaUpdate(BaseModel):
-    dni_odontologo: Optional[str] = None
-    estado: Optional[str] = None
     fecha: Optional[date] = None
     hora: Optional[Union[time, str]] = None
     motivo_consulta: Optional[str] = None

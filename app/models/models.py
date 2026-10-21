@@ -83,7 +83,7 @@ class Insumo(Base):
         UniqueConstraint('nombre', name='insumo_nombre_key')
     )
 
-    insumo_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    insumo_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
     nombre: Mapped[str] = mapped_column(String(150), nullable=False)
     stock: Mapped[decimal.Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     stock_minimo: Mapped[decimal.Decimal] = mapped_column(Numeric(10, 2), nullable=False)
@@ -162,7 +162,7 @@ class HorarioPersonal(Base):
         PrimaryKeyConstraint('horario_odontologo_id', name='horario_personal_pkey')
     )
 
-    horario_odontologo_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    horario_odontologo_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
     dni: Mapped[str] = mapped_column(CHAR(8), nullable=False)
     dia_semana: Mapped[DiaSemanaEnum] = mapped_column(Enum(DiaSemanaEnum, values_callable=lambda cls: [member.value for member in cls], name='dia_semana_enum'), nullable=False)
     hora_inicio: Mapped[datetime.time] = mapped_column(Time, nullable=False)
@@ -179,7 +179,7 @@ class InsumoComprado(Base):
         PrimaryKeyConstraint('insumo_comprado_id', name='insumo_comprado_pkey')
     )
 
-    insumo_comprado_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    insumo_comprado_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
     id_insumo: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     id_proveedor: Mapped[str] = mapped_column(CHAR(11), nullable=False)
     cantidad: Mapped[decimal.Decimal] = mapped_column(Numeric(10, 2), nullable=False)
@@ -245,7 +245,7 @@ class Cita(Base):
         PrimaryKeyConstraint('cita_id', name='cita_pkey')
     )
 
-    cita_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    cita_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
     dni_paciente: Mapped[str] = mapped_column(CHAR(8), nullable=False)
     dni_odontologo: Mapped[str] = mapped_column(CHAR(8), nullable=False)
     fecha: Mapped[datetime.date] = mapped_column(Date, nullable=False)
@@ -267,7 +267,7 @@ class TratamientoPaciente(Base):
         PrimaryKeyConstraint('tratamiento_paciente_id', name='tratamiento_paciente_pkey')
     )
 
-    tratamiento_paciente_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    tratamiento_paciente_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
     dni_paciente: Mapped[str] = mapped_column(CHAR(8), nullable=False)
     dni_odontologo: Mapped[str] = mapped_column(CHAR(8), nullable=False)
     observaciones: Mapped[str] = mapped_column(Text, nullable=False)
@@ -289,7 +289,7 @@ class AgendaTratamientos(Base):
         PrimaryKeyConstraint('agenda_tratamientos_id', name='agenda_tratamientos_pkey')
     )
 
-    agenda_tratamientos_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    agenda_tratamientos_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
     id_tratamiento_paciente: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     dia_semana: Mapped[DiaSemanaEnum] = mapped_column(Enum(DiaSemanaEnum, values_callable=lambda cls: [member.value for member in cls], name='dia_semana_enum'), nullable=False)
     hora_inicio: Mapped[datetime.time] = mapped_column(Time, nullable=False)
@@ -307,7 +307,7 @@ class Pago(Base):
         PrimaryKeyConstraint('pago_id', name='pago_pkey')
     )
 
-    pago_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    pago_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
     id_tratamiento_paciente: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     monto: Mapped[decimal.Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     metodo_pago: Mapped[MetodoPagoEnum] = mapped_column(Enum(MetodoPagoEnum, values_callable=lambda cls: [member.value for member in cls], name='metodo_pago_enum'), nullable=False)
@@ -324,7 +324,7 @@ class ConsumoInsumos(Base):
         PrimaryKeyConstraint('consumo_insumos_id', name='consumo_insumos_pkey')
     )
 
-    consumo_insumos_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    consumo_insumos_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
     id_agenda_tratamiento: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     id_insumo: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     cantidad: Mapped[decimal.Decimal] = mapped_column(Numeric(10, 2), nullable=False)

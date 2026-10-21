@@ -1,4 +1,3 @@
-import uuid
 from datetime import date
 from typing import List, Optional
 from fastapi import APIRouter, Depends, status, Query
@@ -10,7 +9,6 @@ from app.core.dependencies import get_current_user
 from app.schemas.cita import (
     CitaCreate,
     CitaEstadoUpdate,
-    CitaUpdate,
     CitaResponse,
     OdontologoSimpleResponse
 )
@@ -77,29 +75,16 @@ def listar_todas_las_citas(
 
 @router.get("/{cita_id}", response_model=CitaResponse)
 def obtener_detalle_cita(
-    cita_id: uuid.UUID,
+    cita_id: str,
     current_user: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Obtiene los datos detallados de una cita."""
     return cita_service.obtener_detalle_cita(db, cita_id, current_user)
 
-@router.put("/{cita_id}", response_model=CitaResponse)
-def actualizar_cita(
-    cita_id: uuid.UUID,
-    data: CitaUpdate,
-    current_user: Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Edita o reprograma una cita (odontólogo, fecha, hora, motivo, estado, diagnóstico).
-    Solo para Administradores y Odontólogos.
-    """
-    return cita_service.actualizar_cita(db, cita_id, data, current_user)
-
 @router.patch("/{cita_id}/estado", response_model=CitaResponse)
 def actualizar_estado_cita(
-    cita_id: uuid.UUID,
+    cita_id: str,
     data: CitaEstadoUpdate,
     current_user: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -111,7 +96,7 @@ def actualizar_estado_cita(
 
 @router.patch("/{cita_id}/cancelar", response_model=CitaResponse)
 def cancelar_cita(
-    cita_id: uuid.UUID,
+    cita_id: str,
     current_user: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):

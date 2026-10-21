@@ -3,13 +3,6 @@ from datetime import date, datetime
 from typing import Optional, Union, Any
 from pydantic import BaseModel, ConfigDict, field_validator
 
-def _vacio_a_none(v: Any) -> Any:
-    """Convierte '' en None: direccion, telefono y correo son UNIQUE en la BD,
-    así que dos pacientes con '' chocarían entre sí."""
-    if isinstance(v, str) and not v.strip():
-        return None
-    return v.strip() if isinstance(v, str) else v
-
 class PacienteBase(BaseModel):
     nombres: str
     apellidos: str
@@ -56,6 +49,7 @@ class PacienteUpdate(BaseModel):
     observaciones: Optional[str] = None
     fecha_nacimiento: Optional[date] = None
 
+<<<<<<< HEAD
     @field_validator("telefono", "correo", "direccion", mode="before")
     @classmethod
     def normalizar_vacios(cls, v: Any) -> Any:
@@ -70,6 +64,8 @@ class PacienteUpdate(BaseModel):
                 raise ValueError("El teléfono debe contener exactamente 9 dígitos numéricos.")
         return v
 
+=======
+>>>>>>> parent of c58bb9e (Merge pull request #2 from LuisZambranoRamirez/dev)
 class PacienteResponse(PacienteBase):
     dni: str
     username: str
