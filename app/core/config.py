@@ -8,7 +8,7 @@ class Config:
         os.getenv("DATABASE_URL")
         or os.getenv("POSTGRES_PRISMA_URL")
         or os.getenv("POSTGRES_URL")
-        or ""
+        or "aqui va tu URL de conexión a PostgreSQL local"
     )
 
     SECRET_KEY: str = os.getenv("SECRET_KEY", "")
