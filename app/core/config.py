@@ -6,7 +6,7 @@ load_dotenv()
 class Config:
     DATABASE_URL = (
         os.getenv("POSTGRES_PRISMA_URL")
-        or "postgresql+psycopg2://postgres:proyar@localhost:5432/SoliDent"
+        or "postgresql+psycopg2://postgres:drakotako1234@localhost:5432/SoliDent"
     )
     SECRET_KEY = (
         os.getenv("SECRET_KEY")
