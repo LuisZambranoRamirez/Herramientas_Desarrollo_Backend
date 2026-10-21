@@ -2,8 +2,7 @@ from datetime import datetime
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.models.models import Usuario
-from app.models.models import Paciente
+from app.models.models import Usuario, Paciente, UserRoleEnum
 from app.schemas.auth import LoginRequest, RegistroPaciente
 from app.core.security import verify_password, get_password_hash, create_access_token
 
@@ -34,35 +33,30 @@ def iniciar_sesion(db: Session, credentials: LoginRequest) -> dict:
 
 def registrar_paciente(db: Session, data: RegistroPaciente) -> dict:
     """Crea el usuario y el paciente asociado, y genera su token de acceso."""
-    # 1. Validar que el username no exista
     if db.query(Usuario).filter(Usuario.username == data.username).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="El nombre de usuario ya se encuentra registrado"
         )
 
-    # 2. Validar que el DNI no exista
     if db.query(Paciente).filter(Paciente.dni == data.dni).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="El DNI ya se encuentra registrado"
         )
 
-    # 3. Validar que el correo no esté en uso
     if db.query(Paciente).filter(Paciente.correo == data.correo).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="El correo electrónico ya se encuentra registrado"
         )
 
-    # 4. Validar que el teléfono no esté en uso (si se proporciona)
     if data.telefono and db.query(Paciente).filter(Paciente.telefono == data.telefono).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="El número de teléfono ya se encuentra registrado"
         )
 
-    # Parsear fecha_nacimiento si viene como string
     if isinstance(data.fecha_nacimiento, str):
         try:
             fecha_nac = datetime.strptime(data.fecha_nacimiento, "%Y-%m-%d").date()
@@ -76,16 +70,14 @@ def registrar_paciente(db: Session, data: RegistroPaciente) -> dict:
 
     now = datetime.utcnow()
 
-    # 5. Crear la entidad Usuario
     new_user = Usuario(
         username=data.username,
         password=get_password_hash(data.password),
         activo=True,
-        user_role="PACIENTE",
+        user_role=UserRoleEnum.PACIENTE,
         fecha_registro=now
     )
 
-    # 6. Crear la entidad Paciente asociada
     new_paciente = Paciente(
         dni=data.dni,
         username=data.username,
@@ -112,7 +104,6 @@ def registrar_paciente(db: Session, data: RegistroPaciente) -> dict:
             detail=f"Error al registrar el paciente: {str(e)}"
         )
 
-    # Generar token de acceso para auto-login
     token = create_access_token(data={"sub": new_user.username, "user_role": "PACIENTE"})
 
     return {
