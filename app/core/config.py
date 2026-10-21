@@ -4,24 +4,28 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    DATABASE_URL = (
-        os.getenv("POSTGRES_PRISMA_URL")
-        or "postgresql+psycopg2://postgres:drakotako1234@localhost:5432/SoliDent"
-    )
-    SECRET_KEY = (
-        os.getenv("SECRET_KEY")
-        or "soident-secret-key-change-in-production"
+    DATABASE_URL: str = (
+        os.getenv("DATABASE_URL")
+        or os.getenv("POSTGRES_PRISMA_URL")
+        or os.getenv("POSTGRES_URL")
+        or ""
     )
 
-    ALGORITHM = (
-        os.getenv("ALGORITHM")
-        or "HS256"
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "")
+    ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
+
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
+        os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "480")
     )
 
-    ACCESS_TOKEN_EXPIRE_MINUTES = int(
-        os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES")
-        or "480"
-    )  # 8 horas por defecto
-    
-# Instancia de Configuración
+
 config = Config()
+
+if not config.DATABASE_URL:
+    raise RuntimeError(
+        "No se encontró DATABASE_URL, POSTGRES_PRISMA_URL "
+        "ni POSTGRES_URL en las variables de entorno."
+    )
+
+if not config.SECRET_KEY:
+    raise RuntimeError("La variable SECRET_KEY no está configurada.")
