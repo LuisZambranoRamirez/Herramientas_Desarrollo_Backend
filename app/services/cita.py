@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from typing import List, Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, joinedload
@@ -141,7 +141,7 @@ def agendar_cita(db: Session, data: CitaCreate, current_user: Usuario) -> dict:
         motivo_consulta=data.motivo_consulta,
         diagnostico=(data.diagnostico or None),
         estado=EstadoCitaEnum.PROGRAMADA.value,
-        fecha_registro=datetime.utcnow()
+        fecha_registro=datetime.now(timezone.utc)
     )
 
     db.add(nueva_cita)

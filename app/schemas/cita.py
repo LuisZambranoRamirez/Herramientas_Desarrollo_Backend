@@ -1,3 +1,4 @@
+import re
 from datetime import date, time, datetime
 from typing import Optional, Union, Any
 from pydantic import BaseModel, ConfigDict, field_validator
@@ -30,6 +31,15 @@ class CitaCreate(BaseModel):
     motivo_consulta: str
     diagnostico: Optional[str] = None   # Notas / observaciones clínicas (opcional)
     dni_paciente: Optional[str] = None  # Opcional: si el usuario es paciente se toma de su sesión
+
+    @field_validator("dni_odontologo", "dni_paciente")
+    @classmethod
+    def validar_dnis(cls, v: Optional[str]) -> Optional[str]:
+        if v:
+            v = v.strip()
+            if not re.fullmatch(r"^\d{8}$", v):
+                raise ValueError("El DNI debe contener exactamente 8 dígitos numéricos.")
+        return v
 
     @field_validator("hora", mode="before")
     @classmethod

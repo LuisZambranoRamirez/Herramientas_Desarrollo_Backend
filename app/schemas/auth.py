@@ -1,3 +1,4 @@
+import re
 from datetime import date, datetime
 from typing import Union, Any, Optional
 from pydantic import BaseModel, ConfigDict, field_validator
@@ -53,6 +54,24 @@ class RegistroPaciente(BaseModel):
     correo: str
     fecha_nacimiento: Union[date, str]
     direccion: Optional[str] = None
+
+    @field_validator("dni")
+    @classmethod
+    def validar_dni(cls, v: str) -> str:
+        if v:
+            v = v.strip()
+            if not re.fullmatch(r"^\d{8}$", v):
+                raise ValueError("El DNI debe contener exactamente 8 dígitos numéricos.")
+        return v
+
+    @field_validator("telefono")
+    @classmethod
+    def validar_telefono(cls, v: str) -> str:
+        if v:
+            v = v.strip()
+            if not re.fullmatch(r"^\d{9}$", v):
+                raise ValueError("El teléfono debe contener exactamente 9 dígitos numéricos.")
+        return v
 
 # Esquema de respuesta para registro de paciente
 class RegistroPacienteResponse(BaseModel):

@@ -1,3 +1,4 @@
+import re
 from datetime import date, datetime
 from typing import Optional, Union, Any
 from pydantic import BaseModel, ConfigDict, field_validator
@@ -23,10 +24,28 @@ class PacienteBase(BaseModel):
     def normalizar_vacios(cls, v: Any) -> Any:
         return _vacio_a_none(v)
 
+    @field_validator("telefono")
+    @classmethod
+    def validar_telefono(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            v = v.strip()
+            if v and not re.fullmatch(r"^\d{9}$", v):
+                raise ValueError("El teléfono debe contener exactamente 9 dígitos numéricos.")
+        return v
+
 class PacienteCreate(PacienteBase):
     dni: str
     username: Optional[str] = None  # Si no se envía se usa el correo o el dni
     password: Optional[str] = None  # Contraseña inicial (por defecto el DNI si no se proporciona)
+
+    @field_validator("dni")
+    @classmethod
+    def validar_dni(cls, v: str) -> str:
+        if v:
+            v = v.strip()
+            if not re.fullmatch(r"^\d{8}$", v):
+                raise ValueError("El DNI debe contener exactamente 8 dígitos numéricos.")
+        return v
 
 class PacienteUpdate(BaseModel):
     nombres: Optional[str] = None
@@ -41,6 +60,15 @@ class PacienteUpdate(BaseModel):
     @classmethod
     def normalizar_vacios(cls, v: Any) -> Any:
         return _vacio_a_none(v)
+
+    @field_validator("telefono")
+    @classmethod
+    def validar_telefono(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            v = v.strip()
+            if v and not re.fullmatch(r"^\d{9}$", v):
+                raise ValueError("El teléfono debe contener exactamente 9 dígitos numéricos.")
+        return v
 
 class PacienteResponse(PacienteBase):
     dni: str
