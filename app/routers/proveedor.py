@@ -45,13 +45,3 @@ def actualizar_proveedor(
 ):
     """Actualiza la información de un proveedor."""
     return proveedor_service.actualizar_proveedor(db, ruc, data, current_user)
-
-@router.delete("/{ruc}", status_code=status.HTTP_204_NO_CONTENT)
-def eliminar_proveedor(
-    ruc: str,
-    current_user: Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Elimina un proveedor del sistema."""
-    proveedor_service.eliminar_proveedor(db, ruc, current_user)
-    return None

@@ -77,22 +77,3 @@ def actualizar_proveedor(db: Session, ruc: str, data: ProveedorUpdate, current_u
             detail="Ocurrió un error interno al actualizar el proveedor."
         )
 
-def eliminar_proveedor(db: Session, ruc: str, current_user: Usuario) -> None:
-    role_val = current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)
-    if role_val != "SYSTEM_ADMIN":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Solo administradores pueden eliminar proveedores."
-        )
-
-    prov = obtener_proveedor_por_ruc(db, ruc, current_user)
-
-    try:
-        db.delete(prov)
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Ocurrió un error interno al eliminar el proveedor."
-        )
