@@ -56,7 +56,7 @@ class MetodoPagoEnum(str, enum.Enum):
 
 class PermisosEnum(str, enum.Enum):
     LEER = 'LEER'
-    ACTUALIZAR = 'ACTUALIZAR'
+    ACTULIZAR = 'ACTULIZAR'
     ELIMINAR = 'ELIMINAR'
     CREAR = 'CREAR'
 
@@ -71,7 +71,7 @@ class TratamientoOdontologicoEnum(str, enum.Enum):
 
 
 class UserRoleEnum(str, enum.Enum):
-    SYSTEM_ADMIN = 'ADMIN'
+    SYSTEM_ADMIN = 'SYSTEM_ADMIN'
     ODONTOLOGO = 'ODONTOLOGO'
     PACIENTE = 'PACIENTE'
 
