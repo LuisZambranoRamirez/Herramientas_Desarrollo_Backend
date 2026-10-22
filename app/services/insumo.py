@@ -87,26 +87,6 @@ def actualizar_insumo(db: Session, insumo_id: uuid.UUID, data: InsumoUpdate, cur
             detail="Ocurrió un error interno al actualizar el insumo."
         )
 
-def eliminar_insumo(db: Session, insumo_id: uuid.UUID, current_user: Usuario) -> None:
-    role_val = current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)
-    if role_val != "SYSTEM_ADMIN":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Solo administradores pueden eliminar insumos."
-        )
-
-    insumo = obtener_insumo_por_id(db, insumo_id, current_user)
-
-    try:
-        db.delete(insumo)
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Ocurrió un error interno al eliminar el insumo."
-        )
-
 def listar_compras(db: Session, insumo_id: Optional[uuid.UUID], current_user: Usuario) -> List[InsumoComprado]:
     query = db.query(InsumoComprado)
     if insumo_id:
