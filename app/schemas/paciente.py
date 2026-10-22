@@ -1,7 +1,17 @@
+
 import re
 from datetime import date, datetime
 from typing import Optional, Union, Any
+
 from pydantic import BaseModel, ConfigDict, field_validator
+
+
+def _vacio_a_none(v: Any) -> Any:
+    """Convierte cadenas vacías o con espacios en None."""
+    if isinstance(v, str) and not v.strip():
+        return None
+    return v
+
 
 class PacienteBase(BaseModel):
     nombres: str
@@ -22,23 +32,28 @@ class PacienteBase(BaseModel):
     def validar_telefono(cls, v: Optional[str]) -> Optional[str]:
         if v is not None:
             v = v.strip()
-            if v and not re.fullmatch(r"^\d{9}$", v):
-                raise ValueError("El teléfono debe contener exactamente 9 dígitos numéricos.")
+            if v and not re.fullmatch(r"\d{9}", v):
+                raise ValueError(
+                    "El teléfono debe contener exactamente 9 dígitos numéricos."
+                )
         return v
+
 
 class PacienteCreate(PacienteBase):
     dni: str
-    username: Optional[str] = None  # Si no se envía se usa el correo o el dni
-    password: Optional[str] = None  # Contraseña inicial (por defecto el DNI si no se proporciona)
+    username: Optional[str] = None
+    password: Optional[str] = None
 
     @field_validator("dni")
     @classmethod
     def validar_dni(cls, v: str) -> str:
-        if v:
-            v = v.strip()
-            if not re.fullmatch(r"^\d{8}$", v):
-                raise ValueError("El DNI debe contener exactamente 8 dígitos numéricos.")
+        v = v.strip()
+        if not re.fullmatch(r"\d{8}", v):
+            raise ValueError(
+                "El DNI debe contener exactamente 8 dígitos numéricos."
+            )
         return v
+
 
 class PacienteUpdate(BaseModel):
     nombres: Optional[str] = None
@@ -59,28 +74,17 @@ class PacienteUpdate(BaseModel):
     def validar_telefono(cls, v: Optional[str]) -> Optional[str]:
         if v is not None:
             v = v.strip()
-            if v and not re.fullmatch(r"^\d{9}$", v):
-                raise ValueError("El teléfono debe contener exactamente 9 dígitos numéricos.")
+            if v and not re.fullmatch(r"\d{9}", v):
+                raise ValueError(
+                    "El teléfono debe contener exactamente 9 dígitos numéricos."
+                )
         return v
+
 
 class PacienteResponse(PacienteBase):
     dni: str
     username: str
-    fecha_registro: Union[datetime, str]
+    fecha_registro: datetime
     activo: Optional[bool] = True
 
     model_config = ConfigDict(from_attributes=True)
-
-    @field_validator("fecha_nacimiento", mode="before")
-    @classmethod
-    def serialize_fecha_nacimiento(cls, v: Any) -> Any:
-        if isinstance(v, date):
-            return v.isoformat()
-        return v
-
-    @field_validator("fecha_registro", mode="before")
-    @classmethod
-    def serialize_fecha_registro(cls, v: Any) -> Any:
-        if isinstance(v, datetime):
-            return v.isoformat()
-        return v
