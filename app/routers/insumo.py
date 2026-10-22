@@ -97,16 +97,6 @@ def actualizar_insumo(
     """Actualiza los datos o existencias de un insumo."""
     return insumo_service.actualizar_insumo(db, insumo_id, data, current_user)
 
-@router.delete("/{insumo_id}", status_code=status.HTTP_204_NO_CONTENT)
-def eliminar_insumo(
-    insumo_id: uuid.UUID,
-    current_user: Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Elimina un insumo del catálogo."""
-    insumo_service.eliminar_insumo(db, insumo_id, current_user)
-    return None
-
 @router.get("/{insumo_id}/compras", response_model=List[InsumoCompradoResponse])
 def listar_compras_insumo(
     insumo_id: uuid.UUID,
