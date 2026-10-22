@@ -132,22 +132,3 @@ def toggle_status_usuario(db: Session, username: str, current_user: Usuario) -> 
     db.refresh(usuario)
 
     return _to_usuario_response(usuario)
-
-
-def eliminar_usuario(db: Session, username: str, current_user: Usuario) -> None:
-    """Elimina un usuario del sistema."""
-    if username == current_user.username:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No puedes eliminar tu propio usuario en sesión activa."
-        )
-
-    usuario = db.query(Usuario).filter(Usuario.username == username).first()
-    if not usuario:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Usuario '{username}' no encontrado."
-        )
-
-    db.delete(usuario)
-    db.commit()
