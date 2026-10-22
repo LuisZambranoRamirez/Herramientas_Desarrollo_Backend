@@ -10,22 +10,6 @@ def iniciar_sesion(db: Session, credentials: LoginRequest) -> dict:
     """Valida las credenciales y genera el token de acceso del usuario."""
     user = db.query(Usuario).filter(Usuario.username == credentials.username).first()
 
-        # Verificar si existe el usuario
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="El usuario no existe.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    # Verificar si la contraseña es correcta
-    if not verify_password(credentials.password, user.password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="La contraseña es incorrecta.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
     if not user or not verify_password(credentials.password, user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
