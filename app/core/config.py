@@ -18,13 +18,19 @@ class Config:
         os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "480")
     )
 
+# Borrar esto en produccion y colocar el dominio de tu frontend en la lista de CORS_ORIGINS
+    CORS_ORIGINS: list[str] = [
+        "*"
+    ]
 
 config = Config()
 
-if not config.DATABASE_URL:
+if not config.DATABASE_URL or config.DATABASE_URL == (
+    "aqui va tu URL de conexión a PostgreSQL local"
+):
     raise RuntimeError(
-        "No se encontró DATABASE_URL, POSTGRES_PRISMA_URL "
-        "ni POSTGRES_URL en las variables de entorno."
+        "No se encontró una URL válida de PostgreSQL. "
+        "Configura DATABASE_URL, POSTGRES_PRISMA_URL o POSTGRES_URL."
     )
 
 if not config.SECRET_KEY:
