@@ -18,7 +18,7 @@ class Config:
         os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "480")
     )
 
-# Borrar esto en produccion y colocar el dominio de tu frontend en la lista de CORS_ORIGINS
+    # Borrar esto en produccion y colocar el dominio de tu frontend en la lista de CORS_ORIGINS
     CORS_ORIGINS: list[str] = [
         "*"
     ]
