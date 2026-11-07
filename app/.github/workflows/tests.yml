@@ -1,0 +1,36 @@
+name: Python Tests
+
+# Define cuándo se ejecutarán las pruebas
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Descarga el código del repositorio en el servidor de GitHub
+    - name: Checkout de códigoqi
+      uses: actions/checkout@v4
+
+    # 2. Configura la versión de Python que usa tu proyecto
+    - name: Configurar Python
+      uses: actions/actions-setup@v3  # Nota: En entornos de producción reales se usa actions/setup-python
+      with:
+        python-version: '3.11'
+
+    # 3. Instala las dependencias y el framework de pruebas
+    - name: Instalar dependencias
+      run: |
+        python -m pip upgrade pip
+        pip install pytest
+        # Si tienes un archivo requirements.txt, descomenta la línea de abajo:
+        # pip install -r requirements.txt
+
+    # 4. Ejecuta los tests automáticamente
+    - name: Ejecutar pruebas con Pytest
+      run: |
+        pytest
