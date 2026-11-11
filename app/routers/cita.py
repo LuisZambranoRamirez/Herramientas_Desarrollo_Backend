@@ -1,3 +1,4 @@
+import uuid
 from datetime import date
 from typing import List, Optional
 from fastapi import APIRouter, Depends, status, Query
@@ -75,7 +76,7 @@ def listar_todas_las_citas(
 
 @router.get("/{cita_id}", response_model=CitaResponse)
 def obtener_detalle_cita(
-    cita_id: str,
+    cita_id: uuid.UUID,
     current_user: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -84,7 +85,7 @@ def obtener_detalle_cita(
 
 @router.patch("/{cita_id}/estado", response_model=CitaResponse)
 def actualizar_estado_cita(
-    cita_id: str,
+    cita_id: uuid.UUID,
     data: CitaEstadoUpdate,
     current_user: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -96,7 +97,7 @@ def actualizar_estado_cita(
 
 @router.patch("/{cita_id}/cancelar", response_model=CitaResponse)
 def cancelar_cita(
-    cita_id: str,
+    cita_id: uuid.UUID,
     current_user: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):

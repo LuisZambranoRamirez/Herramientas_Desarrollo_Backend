@@ -30,6 +30,7 @@ class CitaCreate(BaseModel):
     hora: Union[time, str]
     motivo_consulta: str
     dni_paciente: Optional[str] = None  # Opcional: si el usuario es paciente se toma de su sesión
+    diagnostico: Optional[str] = None
 
     @field_validator("dni_odontologo", "dni_paciente")
     @classmethod
