@@ -403,9 +403,18 @@ def actualizar_cita(
             status_code=status.HTTP_404_NOT_FOUND, detail="Cita no encontrada"
         )
 
+    nuevo_paciente = data.dni_paciente or cita.dni_paciente
     nuevo_odontologo = data.dni_odontologo or cita.dni_odontologo
     nueva_fecha = data.fecha or cita.fecha
     nueva_hora = data.hora if data.hora is not None else cita.hora
+
+    if data.dni_paciente and not db.query(Paciente).filter(
+        Paciente.dni == data.dni_paciente
+    ).first():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No existe ningún paciente con DNI {data.dni_paciente}",
+        )
 
     if data.dni_odontologo and not db.query(Odontologo).filter(
         Odontologo.dni == data.dni_odontologo
@@ -418,7 +427,7 @@ def actualizar_cita(
     # ✅ CORREGIDO: manejar Enum correctamente
     if data.estado:
         try:
-            estado_final = EstadoCitaEnum(data.estado.upper())
+            estado_final = EstadoCitaEnum(data.estado.strip().upper())
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -449,6 +458,7 @@ def actualizar_cita(
                 detail="El odontólogo ya tiene una cita programada para esa fecha y hora",
             )
 
+    cita.dni_paciente = nuevo_paciente
     cita.dni_odontologo = nuevo_odontologo
     cita.fecha = nueva_fecha
     cita.hora = nueva_hora
@@ -458,7 +468,14 @@ def actualizar_cita(
     if data.diagnostico is not None:
         cita.diagnostico = data.diagnostico or None
 
-    db.commit()
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al actualizar la cita: {str(e)}",
+        )
     db.expire_all()
     cita = (
         _query_citas_con_relaciones(db).filter(Cita.cita_id == cita_uuid).first()
