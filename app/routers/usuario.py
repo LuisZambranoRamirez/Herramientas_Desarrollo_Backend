@@ -71,14 +71,14 @@ def toggle_status(
     return usuario_service.toggle_status_usuario(db, username, current_user)
 
 
-@router.delete("/{username}", status_code=status.HTTP_204_NO_CONTENT)
-def eliminar_usuario(
+@router.delete("/{username}", status_code=status.HTTP_200_OK)
+def desactivar_usuario(
     username: str,
     current_user: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Elimina un usuario del sistema.
+    Desactiva un usuario del sistema mediante baja lógica (activo = False).
+    Solo para Administradores.
     """
-    usuario_service.eliminar_usuario(db, username, current_user)
-    return None
+    return usuario_service.desactivar_usuario(db, username, current_user)

@@ -1,0 +1,36 @@
+name: FastAPI Automated Tests
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Clonar el código en el servidor de GitHub
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # 2. Configurar la versión de Python
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11' # Cambia esto por tu versión de Python (ej. '3.10', '3.12')
+        cache: 'pip'           # Guarda en caché las dependencias para que corra más rápido
+
+    # 3. Instalar dependencias
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        # Asegúrate de tener pytest e httpx instalados (necesarios para probar FastAPI)
+        pip install pytest httpx 
+
+    # 4. Ejecutar los tests con pytest
+    - name: Run tests
+      run: |
+        pytest

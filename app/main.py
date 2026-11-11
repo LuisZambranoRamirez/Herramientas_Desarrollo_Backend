@@ -36,10 +36,5 @@ app.add_middleware(
 def root():
     return {"message": "Solident API funcionando"}
 
-# Endpoint simple GET /api/health
-@app.get("/api/health")
-def api_health():
-    return {"status": "ok"}
-
 # Incluir routers bajo el prefijo /api
 app.include_router(api_router)

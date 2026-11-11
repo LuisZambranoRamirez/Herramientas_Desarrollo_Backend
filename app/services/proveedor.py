@@ -3,7 +3,7 @@ from typing import List, Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.models.models import Proveedor, Usuario
+from app.models.models import Proveedor, InsumoComprado, Usuario
 from app.schemas.proveedor import ProveedorCreate, ProveedorUpdate
 
 def listar_proveedores(db: Session, current_user: Usuario) -> List[Proveedor]:
@@ -77,7 +77,7 @@ def actualizar_proveedor(db: Session, ruc: str, data: ProveedorUpdate, current_u
             detail="Ocurrió un error interno al actualizar el proveedor."
         )
 
-def eliminar_proveedor(db: Session, ruc: str, current_user: Usuario) -> None:
+def eliminar_proveedor(db: Session, ruc: str, current_user: Usuario) -> dict:
     role_val = current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)
     if role_val != "SYSTEM_ADMIN":
         raise HTTPException(
@@ -86,6 +86,18 @@ def eliminar_proveedor(db: Session, ruc: str, current_user: Usuario) -> None:
         )
 
     prov = obtener_proveedor_por_ruc(db, ruc, current_user)
+
+    tiene_compras = (
+        db.query(InsumoComprado.insumo_comprado_id)
+        .filter(InsumoComprado.id_proveedor == ruc)
+        .first()
+        is not None
+    )
+    if tiene_compras:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="No se puede eliminar el proveedor porque tiene compras de insumos registradas."
+        )
 
     try:
         db.delete(prov)
@@ -96,3 +108,6 @@ def eliminar_proveedor(db: Session, ruc: str, current_user: Usuario) -> None:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Ocurrió un error interno al eliminar el proveedor."
         )
+
+    return {"message": f"Proveedor con RUC {ruc} eliminado exitosamente."}
+

@@ -87,7 +87,7 @@ def actualizar_insumo(db: Session, insumo_id: uuid.UUID, data: InsumoUpdate, cur
             detail="Ocurrió un error interno al actualizar el insumo."
         )
 
-def eliminar_insumo(db: Session, insumo_id: uuid.UUID, current_user: Usuario) -> None:
+def eliminar_insumo(db: Session, insumo_id: uuid.UUID, current_user: Usuario) -> dict:
     role_val = current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)
     if role_val != "SYSTEM_ADMIN":
         raise HTTPException(
@@ -96,6 +96,24 @@ def eliminar_insumo(db: Session, insumo_id: uuid.UUID, current_user: Usuario) ->
         )
 
     insumo = obtener_insumo_por_id(db, insumo_id, current_user)
+
+    tiene_compras = (
+        db.query(InsumoComprado.insumo_comprado_id)
+        .filter(InsumoComprado.id_insumo == insumo_id)
+        .first()
+        is not None
+    )
+    tiene_consumos = (
+        db.query(ConsumoInsumos.consumo_insumos_id)
+        .filter(ConsumoInsumos.id_insumo == insumo_id)
+        .first()
+        is not None
+    )
+    if tiene_compras or tiene_consumos:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="No se puede eliminar el insumo porque tiene historial de compras o consumos registrado."
+        )
 
     try:
         db.delete(insumo)
@@ -106,6 +124,8 @@ def eliminar_insumo(db: Session, insumo_id: uuid.UUID, current_user: Usuario) ->
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Ocurrió un error interno al eliminar el insumo."
         )
+
+    return {"message": f"Insumo '{insumo.nombre}' eliminado exitosamente."}
 
 def listar_compras(db: Session, insumo_id: Optional[uuid.UUID], current_user: Usuario) -> List[InsumoComprado]:
     query = db.query(InsumoComprado)
