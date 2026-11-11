@@ -1,10 +1,19 @@
+import unicodedata
 from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
-from app.models.models import Usuario, Personal, Odontologo, EspecialidadEnum, UserRoleEnum
+from app.models.models import (
+    Usuario,
+    Personal,
+    Odontologo,
+    HorarioPersonal,
+    DiaSemanaEnum,
+    EspecialidadEnum,
+    UserRoleEnum,
+)
 from app.core.security import get_password_hash
 from app.schemas.odontologo import OdontologoCreate, OdontologoUpdate
 
@@ -198,3 +207,57 @@ def cambiar_estado_odontologo(db: Session, dni: str, activo: bool, current_user:
         raise HTTPException(status_code=500, detail=f"Error al cambiar estado del odontólogo: {str(e)}")
     estado_texto = "activado" if activo else "desactivado"
     return {"message": f"El odontólogo con DNI {dni} ha sido {estado_texto} exitosamente"}
+
+
+def _normalizar_dia_semana(dia: str) -> DiaSemanaEnum:
+    """Normaliza un día de la semana (mayúsculas y sin tildes) a DiaSemanaEnum."""
+    sin_tildes = "".join(
+        ch
+        for ch in unicodedata.normalize("NFD", dia.strip())
+        if unicodedata.category(ch) != "Mn"
+    )
+    try:
+        return DiaSemanaEnum(sin_tildes.upper())
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Día de la semana no válido. Permitidos: {[d.value for d in DiaSemanaEnum]}",
+        )
+
+
+def listar_horarios_odontologo(db: Session, dni: str) -> List[HorarioPersonal]:
+    odontologo = db.query(Odontologo).filter(Odontologo.dni == dni).first()
+    if not odontologo:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Odontólogo no encontrado",
+        )
+
+    return (
+        db.query(HorarioPersonal)
+        .filter(HorarioPersonal.dni == dni)
+        .order_by(HorarioPersonal.dia_semana.asc(), HorarioPersonal.hora_inicio.asc())
+        .all()
+    )
+
+
+def listar_horarios_odontologo_por_dia(
+    db: Session, dni: str, dia: str
+) -> List[HorarioPersonal]:
+    odontologo = db.query(Odontologo).filter(Odontologo.dni == dni).first()
+    if not odontologo:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Odontólogo no encontrado",
+        )
+
+    dia_enum = _normalizar_dia_semana(dia)
+    return (
+        db.query(HorarioPersonal)
+        .filter(
+            HorarioPersonal.dni == dni,
+            HorarioPersonal.dia_semana == dia_enum,
+        )
+        .order_by(HorarioPersonal.hora_inicio.asc())
+        .all()
+    )

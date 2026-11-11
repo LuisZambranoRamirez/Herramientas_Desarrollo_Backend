@@ -1,5 +1,6 @@
 import re
-from datetime import datetime
+import uuid
+from datetime import datetime, time
 from typing import Optional, Union, Any, List
 from pydantic import BaseModel, ConfigDict, field_validator
 
@@ -73,3 +74,27 @@ class OdontologoResponse(OdontologoBase):
         if isinstance(v, datetime):
             return v.isoformat()
         return v
+
+
+class HorarioResponse(BaseModel):
+    horario_odontologo_id: uuid.UUID
+    dni: str
+    dia_semana: str
+    hora_inicio: Union[time, str]
+    hora_fin: Union[time, str]
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("dia_semana", mode="before")
+    @classmethod
+    def serialize_dia_semana(cls, v: Any) -> str:
+        if hasattr(v, "value"):
+            return str(v.value)
+        return str(v)
+
+    @field_validator("hora_inicio", "hora_fin", mode="before")
+    @classmethod
+    def serialize_time(cls, v: Any) -> str:
+        if isinstance(v, time):
+            return v.strftime("%H:%M:%S")
+        return str(v)
