@@ -34,3 +34,10 @@ def register(data: RegistroPaciente, db: Session = Depends(get_db)):
 def get_me(current_user: Usuario = Depends(get_current_user)):
     """Valida el Bearer token y retorna el perfil del usuario autenticado."""
     return current_user
+
+@router.post("/logout", status_code=status.HTTP_200_OK)
+def logout():
+    """
+    Cierra la sesión actual del usuario (autenticación JWT stateless).
+    """
+    return {"message": "Sesión cerrada correctamente"}

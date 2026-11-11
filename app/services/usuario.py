@@ -132,3 +132,41 @@ def toggle_status_usuario(db: Session, username: str, current_user: Usuario) -> 
     db.refresh(usuario)
 
     return _to_usuario_response(usuario)
+
+
+def desactivar_usuario(db: Session, username: str, current_user: Usuario) -> dict:
+    """Realiza la baja lógica de un usuario estableciendo activo = False."""
+    role_val = current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)
+    if role_val != UserRoleEnum.SYSTEM_ADMIN.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo los administradores pueden desactivar usuarios.",
+        )
+
+    if username == current_user.username:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No puedes desactivar tu propio usuario en sesión activa.",
+        )
+
+    usuario = db.query(Usuario).filter(Usuario.username == username).first()
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Usuario '{username}' no encontrado.",
+        )
+
+    usuario.activo = False
+    if getattr(usuario, "odontologo", None):
+        usuario.odontologo.activo = False
+
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Ocurrió un error interno al desactivar el usuario.",
+        )
+
+    return {"message": f"El usuario '{username}' ha sido desactivado exitosamente."}

@@ -173,6 +173,10 @@ def desactivar_paciente(db: Session, dni: str, current_user: Usuario) -> dict:
 
     if paciente.usuario:
         paciente.usuario.activo = False
-        db.commit()
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=500, detail=f"Error al desactivar paciente: {str(e)}")
 
     return {"message": f"El paciente con DNI {dni} ha sido desactivado exitosamente"}

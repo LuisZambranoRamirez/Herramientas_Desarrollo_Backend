@@ -70,3 +70,15 @@ def actualizar_paciente(
     Actualiza la información de un paciente.
     """
     return paciente_service.actualizar_paciente(db, dni, data, current_user)
+
+@router.delete("/{dni}", status_code=status.HTTP_200_OK)
+def desactivar_paciente(
+    dni: str,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Desactiva la cuenta de un paciente en el sistema (baja lógica).
+    Solo para Administradores.
+    """
+    return paciente_service.desactivar_paciente(db, dni, current_user)
