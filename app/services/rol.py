@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, TypedDict, Union
 from fastapi import HTTPException, status
 from sqlalchemy.exc import DataError, IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -12,7 +12,13 @@ from app.schemas.rol import (
     normalizar_role_str,
 )
 
-_ROLE_METADATA: Dict[UserRoleEnum, Dict[str, object]] = {
+
+class _RoleMetadata(TypedDict):
+    descripcion: str
+    modulos: List[str]
+
+
+_ROLE_METADATA: Dict[UserRoleEnum, _RoleMetadata] = {
     UserRoleEnum.SYSTEM_ADMIN: {
         "descripcion": (
             "Acceso administrativo total. Permite configurar la plataforma, gestionar usuarios, "
@@ -71,17 +77,22 @@ def _build_role_response(
     registro: Optional[RolePermisos] = None,
 ) -> RoleResponse:
     """Construye la respuesta serializable de un rol combinando metadatos y tabla role_permisos."""
-    meta = _ROLE_METADATA.get(role_enum, {"descripcion": "Rol del sistema.", "modulos": []})
-    permiso_val = (
-        registro.permisos.value
-        if registro is not None and hasattr(registro.permisos, "value")
-        else (str(registro.permisos) if registro is not None else None)
+    meta: _RoleMetadata = _ROLE_METADATA.get(
+        role_enum,
+        {"descripcion": "Rol del sistema.", "modulos": []},
     )
+    permiso_val: Optional[str] = None
+    if registro is not None:
+        permiso_val = (
+            registro.permisos.value
+            if hasattr(registro.permisos, "value")
+            else str(registro.permisos)
+        )
     return RoleResponse(
         role=role_enum.value,
-        descripcion=str(meta["descripcion"]),
+        descripcion=meta["descripcion"],
         permisos=permiso_val,
-        modulos=list(meta["modulos"]),  # type: ignore[arg-type]
+        modulos=list(meta["modulos"]),
         configurado=registro is not None,
     )
 
@@ -89,7 +100,10 @@ def _build_role_response(
 def obtener_roles(db: Session) -> List[RoleResponse]:
     """Lista todos los roles del sistema y sus permisos configurados en role_permisos."""
     registros = db.query(RolePermisos).all()
-    registros_por_rol: Dict[UserRoleEnum, RolePermisos] = {r.role: r for r in registros}
+    registros_por_rol: Dict[UserRoleEnum, RolePermisos] = {
+        (r.role if isinstance(r.role, UserRoleEnum) else UserRoleEnum(str(r.role))): r
+        for r in registros
+    }
     return [
         _build_role_response(role_enum, registros_por_rol.get(role_enum))
         for role_enum in UserRoleEnum
@@ -138,3 +152,4 @@ def guardar_o_actualizar_permisos_rol(
         )
 
     return _build_role_response(role_enum, registro)
+

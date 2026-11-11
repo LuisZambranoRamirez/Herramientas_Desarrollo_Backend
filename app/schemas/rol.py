@@ -8,15 +8,14 @@ def normalizar_role_str(v: Any) -> str:
     """Normaliza y valida que el rol pertenezca a UserRoleEnum."""
     raw = v.value if hasattr(v, "value") else str(v)
     clean = raw.strip().upper()
+    permitidos = [r.value for r in UserRoleEnum]
     if not clean:
-        permitidos = [r.value for r in UserRoleEnum]
         raise ValueError(
             f"El rol no puede estar vacío. Roles permitidos en el ENUM actual: {permitidos}."
         )
     try:
         return UserRoleEnum(clean).value
     except ValueError:
-        permitidos = [r.value for r in UserRoleEnum]
         raise ValueError(
             f"Rol '{raw}' no válido. Solo se permiten roles del ENUM actual: {permitidos}."
         )
@@ -29,15 +28,14 @@ def normalizar_permiso_str(v: Any) -> str:
     # Compatibilidad con el literal 'ACTULIZAR' definido en permisos_enum de PostgreSQL
     if clean == "ACTUALIZAR":
         clean = PermisosEnum.ACTULIZAR.value
+    permitidos = [p.value for p in PermisosEnum]
     if not clean:
-        permitidos = [p.value for p in PermisosEnum]
         raise ValueError(
             f"El permiso no puede estar vacío. Permisos permitidos: {permitidos}."
         )
     try:
         return PermisosEnum(clean).value
     except ValueError:
-        permitidos = [p.value for p in PermisosEnum]
         raise ValueError(
             f"Permiso '{raw}' no válido. Los permisos permitidos son: {permitidos} (también se acepta 'ACTUALIZAR')."
         )
@@ -109,3 +107,4 @@ class RolePermisoUpdate(BaseModel):
     @classmethod
     def validar_permisos(cls, v: str) -> str:
         return normalizar_permiso_str(v)
+
