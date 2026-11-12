@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import List
 from fastapi import HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.models import Usuario, UserRoleEnum
 from app.core.security import get_password_hash
@@ -39,14 +39,34 @@ def _to_usuario_response(u: Usuario) -> UsuarioResponse:
 
 
 def listar_usuarios(db: Session, current_user: Usuario) -> List[UsuarioResponse]:
-    """Lista todos los usuarios del sistema."""
-    usuarios = db.query(Usuario).order_by(Usuario.fecha_registro.desc()).all()
+    """Lista todos los usuarios del sistema cargando relaciones eficientemente."""
+    # Recomendación: Validar permisos de administrador si aplica
+    # if current_user.user_role != UserRoleEnum.ADMIN:
+    #     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acceso denegado.")
+
+    usuarios = (
+        db.query(Usuario)
+        .options(
+            joinedload(Usuario.odontologo),
+            joinedload(Usuario.paciente)
+        )
+        .order_by(Usuario.fecha_registro.desc())
+        .all()
+    )
     return [_to_usuario_response(u) for u in usuarios]
 
 
 def obtener_usuario(db: Session, username: str, current_user: Usuario) -> UsuarioResponse:
     """Obtiene el detalle de un usuario por su username."""
-    usuario = db.query(Usuario).filter(Usuario.username == username).first()
+    usuario = (
+        db.query(Usuario)
+        .options(
+            joinedload(Usuario.odontologo),
+            joinedload(Usuario.paciente)
+        )
+        .filter(Usuario.username == username)
+        .first()
+    )
     if not usuario:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -134,39 +154,20 @@ def toggle_status_usuario(db: Session, username: str, current_user: Usuario) -> 
     return _to_usuario_response(usuario)
 
 
-def desactivar_usuario(db: Session, username: str, current_user: Usuario) -> dict:
-    """Realiza la baja lógica de un usuario estableciendo activo = False."""
-    role_val = current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)
-    if role_val != UserRoleEnum.SYSTEM_ADMIN.value:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Solo los administradores pueden desactivar usuarios.",
-        )
-
+def eliminar_usuario(db: Session, username: str, current_user: Usuario) -> None:
+    """Elimina un usuario del sistema."""
     if username == current_user.username:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No puedes desactivar tu propio usuario en sesión activa.",
+            detail="No puedes eliminar tu propio usuario en sesión activa."
         )
 
     usuario = db.query(Usuario).filter(Usuario.username == username).first()
     if not usuario:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Usuario '{username}' no encontrado.",
+            detail=f"Usuario '{username}' no encontrado."
         )
 
-    usuario.activo = False
-    if getattr(usuario, "odontologo", None):
-        usuario.odontologo.activo = False
-
-    try:
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Ocurrió un error interno al desactivar el usuario.",
-        )
-
-    return {"message": f"El usuario '{username}' ha sido desactivado exitosamente."}
+    db.delete(usuario)
+    db.commit()

@@ -1,6 +1,6 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 import jwt
 
 from app.core.database import get_db
@@ -29,7 +29,17 @@ def get_current_user(
     except (jwt.PyJWTError, Exception):
         raise credentials_exception
 
-    user = db.query(Usuario).filter(Usuario.username == username).first()
+    # Consulta optimizada con carga ansiosa (joinedload) para evitar datos vacíos en relaciones
+    user = (
+        db.query(Usuario)
+        .options(
+            joinedload(Usuario.odontologo),
+            joinedload(Usuario.paciente)
+        )
+        .filter(Usuario.username == username)
+        .first()
+    )
+
     if user is None:
         raise credentials_exception
     if not user.activo:
