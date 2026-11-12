@@ -1,8 +1,10 @@
+
 import logging
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 logger = logging.getLogger(__name__)
@@ -16,6 +18,14 @@ def register_exception_handlers(app: FastAPI) -> None:
         request: Request,
         exc: StarletteHTTPException,
     ):
+        logger.warning(
+            "Error HTTP %s | método=%s | ruta=%s | detalle=%s",
+            exc.status_code,
+            request.method,
+            request.url.path,
+            exc.detail,
+        )
+
         return JSONResponse(
             status_code=exc.status_code,
             content={
@@ -31,12 +41,35 @@ def register_exception_handlers(app: FastAPI) -> None:
         request: Request,
         exc: RequestValidationError,
     ):
+        errores = exc.errors()
+
+        # Registrar los errores sin exponer datos innecesarios
+        logger.warning(
+            "Error de validación | método=%s | ruta=%s | errores=%s",
+            request.method,
+            request.url.path,
+            [
+                {
+                    "campo": error.get("loc"),
+                    "tipo": error.get("type"),
+                    "mensaje": error.get("msg"),
+                }
+                for error in errores
+            ],
+        )
+
+        # Excluir ctx evita serializar objetos como ValueError.
+        detalles = jsonable_encoder(
+            errores,
+            exclude={"ctx"},
+        )
+
         return JSONResponse(
             status_code=422,
             content={
                 "error": "validation_error",
                 "message": "Los datos enviados no son válidos.",
-                "details": exc.errors(),
+                "details": detalles,
                 "path": request.url.path,
             },
         )
@@ -46,10 +79,13 @@ def register_exception_handlers(app: FastAPI) -> None:
         request: Request,
         exc: Exception,
     ):
-        logger.exception(
-            "Error interno procesando %s %s",
+        logger.error(
+            "Error interno | método=%s | ruta=%s | tipo=%s | detalle=%s",
             request.method,
             request.url.path,
+            type(exc).__name__,
+            str(exc),
+            exc_info=(type(exc), exc, exc.__traceback__),
         )
 
         return JSONResponse(

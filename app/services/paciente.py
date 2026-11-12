@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -100,7 +100,7 @@ def registrar_paciente(db: Session, data: PacienteCreate, current_user: Usuario)
         raise HTTPException(status_code=400, detail="El número de teléfono ya está registrado")
 
     raw_password = data.password or data.dni
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     new_user = Usuario(
         username=username,
@@ -129,7 +129,7 @@ def registrar_paciente(db: Session, data: PacienteCreate, current_user: Usuario)
         db.commit()
         db.refresh(new_user)
         db.refresh(new_paciente)
-    except Exception as e:
+    except Exception:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al registrar paciente: {str(e)}")
 
@@ -173,6 +173,10 @@ def desactivar_paciente(db: Session, dni: str, current_user: Usuario) -> dict:
 
     if paciente.usuario:
         paciente.usuario.activo = False
-        db.commit()
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=500, detail=f"Error al desactivar paciente: {str(e)}")
 
     return {"message": f"El paciente con DNI {dni} ha sido desactivado exitosamente"}

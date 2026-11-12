@@ -5,14 +5,13 @@ Ejecución:
 """
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from app.core.database import SessionLocal, engine, Base
-from app.models.models import Usuario, UserRole
+from app.models.models import Usuario, UserRoleEnum
 from app.models.models import Paciente
-from app.models.models import Personal
-from app.models.models import Odontologo, Especialidad
+from app.models.models import Odontologo, EspecialidadEnum
 from app.core.security import get_password_hash
 
 def seed():
@@ -20,7 +19,7 @@ def seed():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     # 1. Crear Usuario Administrador (SYSTEM_ADMIN)
     admin_username = "admin"
@@ -32,7 +31,7 @@ def seed():
             username=admin_username,
             password=get_password_hash(admin_password),
             activo=True,
-            user_role="SYSTEM_ADMIN",
+            user_role=UserRoleEnum.SYSTEM_ADMIN,
             fecha_registro=now
         )
         db.add(user_admin)
@@ -51,7 +50,7 @@ def seed():
             username=paciente_username,
             password=get_password_hash(paciente_password),
             activo=True,
-            user_role="PACIENTE",
+            user_role=UserRoleEnum.PACIENTE,
             fecha_registro=now
         )
         db.add(user_paciente)
@@ -74,6 +73,9 @@ def seed():
         print(f"El usuario '{paciente_username}' ya existe.")
 
     # 3. Crear Odontólogos de prueba
+    # Nota: Odontologo hereda de Personal en SQLAlchemy (Joined Table Inheritance).
+    # Al instanciar Odontologo con todos sus campos, SQLAlchemy gestiona e inserta
+    # automáticamente en la tabla `personal` y luego en `odontologo` sin duplicar filas.
     odontologos_data = [
         {
             "dni": "80123456",
@@ -84,7 +86,7 @@ def seed():
             "telefono": "998877665",
             "correo": "dr.mendoza@solident.pe",
             "colegiatura": "COP-45892",
-            "especialidad": "ORTODONCIA"
+            "especialidad": EspecialidadEnum.ORTODONCIA
         },
         {
             "dni": "80654321",
@@ -95,48 +97,42 @@ def seed():
             "telefono": "994433221",
             "correo": "dra.paredes@solident.pe",
             "colegiatura": "COP-51204",
-            "especialidad": "ODONTOLOGIA_ESTETICA"
+            "especialidad": EspecialidadEnum.ODONTOLOGIA_ESTETICA
         }
     ]
 
     for od in odontologos_data:
-        # Personal
-        pers = db.query(Personal).filter(Personal.dni == od["dni"]).first()
-        if not pers:
-            pers = Personal(
-                dni=od["dni"],
-                nombres=od["nombres"],
-                apellidos=od["apellidos"],
-                telefono=od["telefono"],
-                correo=od["correo"],
-                activo=True,
-                fecha_registro=now
-            )
-            db.add(pers)
-
-        # Usuario
+        # 1. Crear Usuario del Odontólogo
         usr = db.query(Usuario).filter(Usuario.username == od["username"]).first()
         if not usr:
             usr = Usuario(
                 username=od["username"],
                 password=get_password_hash(od["password"]),
                 activo=True,
-                user_role="ODONTOLOGO",
+                user_role=UserRoleEnum.ODONTOLOGO,
                 fecha_registro=now
             )
             db.add(usr)
 
-        # Odontólogo
+        # 2. Crear Odontólogo (incluye automáticamente la entidad Personal)
         odont = db.query(Odontologo).filter(Odontologo.dni == od["dni"]).first()
         if not odont:
             odont = Odontologo(
                 dni=od["dni"],
+                nombres=od["nombres"],
+                apellidos=od["apellidos"],
+                telefono=od["telefono"],
+                correo=od["correo"],
+                activo=True,
+                fecha_registro=now,
                 colegiatura=od["colegiatura"],
                 especialidad=od["especialidad"],
                 username=od["username"]
             )
             db.add(odont)
-            print(f"Odontólogo creado: Dr. {od['nombres']} {od['apellidos']} - {od['especialidad']} ({od['username']} / {od['password']})")
+            print(f"Odontólogo creado: Dr. {od['nombres']} {od['apellidos']} - {od['especialidad'].value} ({od['username']} / {od['password']})")
+        else:
+            print(f"El odontólogo con DNI '{od['dni']}' ya existe.")
 
     db.commit()
     db.close()

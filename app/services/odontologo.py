@@ -1,10 +1,19 @@
-from datetime import datetime
+import unicodedata
+from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
-from app.models.models import Usuario, Personal, Odontologo, EspecialidadEnum, UserRoleEnum
+from app.models.models import (
+    Usuario,
+    Personal,
+    Odontologo,
+    HorarioPersonal,
+    DiaSemanaEnum,
+    EspecialidadEnum,
+    UserRoleEnum,
+)
 from app.core.security import get_password_hash
 from app.schemas.odontologo import OdontologoCreate, OdontologoUpdate
 
@@ -34,7 +43,14 @@ def listar_odontologos(
 ) -> List[dict]:
     q = db.query(Odontologo)
     if especialidad:
-        q = q.filter(Odontologo.especialidad == especialidad.upper())
+        try:
+            esp_enum = EspecialidadEnum(especialidad.strip().upper())
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Especialidad no válida. Permitidas: {[e.value for e in EspecialidadEnum]}",
+            )
+        q = q.filter(Odontologo.especialidad == esp_enum)
     if activo is not None:
         q = q.filter(Odontologo.activo == activo)
     if query:
@@ -44,7 +60,7 @@ def listar_odontologos(
                 Odontologo.dni.ilike(search_filter),
                 Odontologo.colegiatura.ilike(search_filter),
                 Odontologo.nombres.ilike(search_filter),
-                Odontologo.apellidos.ilike(search_filter)
+                Odontologo.apellidos.ilike(search_filter),
             )
         )
     odontologos = q.order_by(Odontologo.apellidos.asc(), Odontologo.nombres.asc()).all()
@@ -77,20 +93,28 @@ def registrar_odontologo(db: Session, data: OdontologoCreate, current_user: Usua
     if db.query(Personal).filter(Personal.telefono == data.telefono).first():
         raise HTTPException(status_code=400, detail="El número de teléfono ya está en uso")
 
-    esp_upper = data.especialidad.upper()
-    if esp_upper not in [e.value for e in EspecialidadEnum]:
-        raise HTTPException(status_code=400, detail=f"Especialidad no válida. Permitidas: {[e.value for e in EspecialidadEnum]}")
+    esp_upper = data.especialidad.strip().upper()
+    try:
+        esp_enum = EspecialidadEnum(esp_upper)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Especialidad no válida. Permitidas: {[e.value for e in EspecialidadEnum]}",
+        )
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
+    # 1. Crear Usuario
     new_usuario = Usuario(
         username=data.username,
         password=get_password_hash(data.password),
         activo=True,
         user_role=UserRoleEnum.ODONTOLOGO,
-        fecha_registro=now
+        fecha_registro=now,
     )
 
+    # 2. Crear Odontólogo (hereda de Personal vía Joined-Table Inheritance;
+    # SQLAlchemy inserta primero en `personal` y luego en `odontologo` sin duplicar filas)
     new_odontologo = Odontologo(
         dni=data.dni,
         nombres=data.nombres,
@@ -100,12 +124,13 @@ def registrar_odontologo(db: Session, data: OdontologoCreate, current_user: Usua
         activo=True,
         fecha_registro=now,
         colegiatura=data.colegiatura,
-        especialidad=esp_upper,
-        username=data.username
+        especialidad=esp_enum,
+        username=data.username,
     )
 
     try:
         db.add(new_usuario)
+        db.flush()
         db.add(new_odontologo)
         db.commit()
         db.refresh(new_odontologo)
@@ -122,18 +147,23 @@ def actualizar_odontologo(db: Session, dni: str, data: OdontologoUpdate, current
 
     if current_user.user_role != UserRoleEnum.SYSTEM_ADMIN and odontologo.username != current_user.username:
         raise HTTPException(status_code=403, detail="No tienes permiso para modificar los datos de este odontólogo")
-
-    personal = odontologo
-
-    if data.correo and data.correo != personal.correo:
+    
+    if current_user.user_role != UserRoleEnum.SYSTEM_ADMIN:
+        if data.colegiatura is not None or data.especialidad is not None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Solo los administradores pueden modificar la colegiatura y especialidad"
+            )
+        
+    if data.correo and data.correo != odontologo.correo:
         if db.query(Personal).filter(Personal.correo == data.correo, Personal.dni != dni).first():
             raise HTTPException(status_code=400, detail="El correo electrónico ya está registrado por otro personal")
-        personal.correo = data.correo
+        odontologo.correo = data.correo
 
-    if data.telefono and data.telefono != personal.telefono:
+    if data.telefono and data.telefono != odontologo.telefono:
         if db.query(Personal).filter(Personal.telefono == data.telefono, Personal.dni != dni).first():
             raise HTTPException(status_code=400, detail="El teléfono ya está registrado por otro personal")
-        personal.telefono = data.telefono
+        odontologo.telefono = data.telefono
 
     if data.colegiatura and data.colegiatura != odontologo.colegiatura:
         if db.query(Odontologo).filter(Odontologo.colegiatura == data.colegiatura, Odontologo.dni != dni).first():
@@ -141,20 +171,27 @@ def actualizar_odontologo(db: Session, dni: str, data: OdontologoUpdate, current
         odontologo.colegiatura = data.colegiatura
 
     if data.especialidad:
-        esp_upper = data.especialidad.upper()
-        if esp_upper not in [e.value for e in EspecialidadEnum]:
+        esp_upper = data.especialidad.strip().upper()
+        try:
+            odontologo.especialidad = EspecialidadEnum(esp_upper)
+        except ValueError:
             raise HTTPException(status_code=400, detail=f"Especialidad no válida. Permitidas: {[e.value for e in EspecialidadEnum]}")
-        odontologo.especialidad = esp_upper
 
-    if data.nombres is not None: personal.nombres = data.nombres
-    if data.apellidos is not None: personal.apellidos = data.apellidos
+    if data.nombres is not None:
+        odontologo.nombres = data.nombres
+    if data.apellidos is not None:
+        odontologo.apellidos = data.apellidos
     if data.activo is not None and current_user.user_role == UserRoleEnum.SYSTEM_ADMIN:
-        personal.activo = data.activo
+        odontologo.activo = data.activo
         if odontologo.usuario:
             odontologo.usuario.activo = data.activo
 
-    db.commit()
-    db.refresh(odontologo)
+    try:
+        db.commit()
+        db.refresh(odontologo)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al actualizar odontólogo: {str(e)}")
     return format_odontologo_response(odontologo)
 
 def cambiar_estado_odontologo(db: Session, dni: str, activo: bool, current_user: Usuario) -> dict:
@@ -165,10 +202,69 @@ def cambiar_estado_odontologo(db: Session, dni: str, activo: bool, current_user:
     if not odontologo:
         raise HTTPException(status_code=404, detail=f"Odontólogo con DNI {dni} no encontrado")
 
+    # Odontologo hereda directamente de Personal (Joined-Table Inheritance)
     odontologo.activo = activo
     if odontologo.usuario:
         odontologo.usuario.activo = activo
 
-    db.commit()
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al cambiar estado del odontólogo: {str(e)}")
     estado_texto = "activado" if activo else "desactivado"
     return {"message": f"El odontólogo con DNI {dni} ha sido {estado_texto} exitosamente"}
+
+
+def _normalizar_dia_semana(dia: str) -> DiaSemanaEnum:
+    """Normaliza un día de la semana (mayúsculas y sin tildes) a DiaSemanaEnum."""
+    sin_tildes = "".join(
+        ch
+        for ch in unicodedata.normalize("NFD", dia.strip())
+        if unicodedata.category(ch) != "Mn"
+    )
+    try:
+        return DiaSemanaEnum(sin_tildes.upper())
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Día de la semana no válido. Permitidos: {[d.value for d in DiaSemanaEnum]}",
+        )
+
+
+def listar_horarios_odontologo(db: Session, dni: str) -> List[HorarioPersonal]:
+    odontologo = db.query(Odontologo).filter(Odontologo.dni == dni).first()
+    if not odontologo:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Odontólogo no encontrado",
+        )
+
+    return (
+        db.query(HorarioPersonal)
+        .filter(HorarioPersonal.dni == dni)
+        .order_by(HorarioPersonal.dia_semana.asc(), HorarioPersonal.hora_inicio.asc())
+        .all()
+    )
+
+
+def listar_horarios_odontologo_por_dia(
+    db: Session, dni: str, dia: str
+) -> List[HorarioPersonal]:
+    odontologo = db.query(Odontologo).filter(Odontologo.dni == dni).first()
+    if not odontologo:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Odontólogo no encontrado",
+        )
+
+    dia_enum = _normalizar_dia_semana(dia)
+    return (
+        db.query(HorarioPersonal)
+        .filter(
+            HorarioPersonal.dni == dni,
+            HorarioPersonal.dia_semana == dia_enum,
+        )
+        .order_by(HorarioPersonal.hora_inicio.asc())
+        .all()
+    )

@@ -1,3 +1,4 @@
+import re
 from datetime import date, time, datetime
 from typing import Optional, Union, Any
 from pydantic import BaseModel, ConfigDict, field_validator
@@ -28,8 +29,17 @@ class CitaCreate(BaseModel):
     fecha: date
     hora: Union[time, str]
     motivo_consulta: str
-    diagnostico: Optional[str] = None   # Notas / observaciones clínicas (opcional)
     dni_paciente: Optional[str] = None  # Opcional: si el usuario es paciente se toma de su sesión
+    diagnostico: Optional[str] = None
+
+    @field_validator("dni_odontologo", "dni_paciente")
+    @classmethod
+    def validar_dnis(cls, v: Optional[str]) -> Optional[str]:
+        if v:
+            v = v.strip()
+            if not re.fullmatch(r"^\d{8}$", v):
+                raise ValueError("El DNI debe contener exactamente 8 dígitos numéricos.")
+        return v
 
     @field_validator("hora", mode="before")
     @classmethod
@@ -46,18 +56,37 @@ class CitaCreate(BaseModel):
 
 # Esquema para actualizar datos de una cita
 class CitaUpdate(BaseModel):
+    dni_paciente: Optional[str] = None
     dni_odontologo: Optional[str] = None
-    estado: Optional[str] = None
     fecha: Optional[date] = None
     hora: Optional[Union[time, str]] = None
     motivo_consulta: Optional[str] = None
     diagnostico: Optional[str] = None
+    estado: Optional[str] = None
+
+    @field_validator("dni_paciente", "dni_odontologo", "estado", mode="before")
+    @classmethod
+    def normalizar_vacios_update(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            v = v.strip()
+            return v or None
+        return v
+
+    @field_validator("dni_paciente", "dni_odontologo")
+    @classmethod
+    def validar_dnis_update(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and not re.fullmatch(r"^\d{8}$", v):
+            raise ValueError("El DNI debe contener exactamente 8 dígitos numéricos.")
+        return v
 
     @field_validator("hora", mode="before")
     @classmethod
     def parse_hora_update(cls, v: Any) -> Any:
         if isinstance(v, str):
-            parts = v.strip().split(":")
+            v = v.strip()
+            if not v:
+                return None
+            parts = v.split(":")
             if len(parts) >= 2:
                 return time(int(parts[0]), int(parts[1]), int(parts[2]) if len(parts) > 2 else 0)
         return v

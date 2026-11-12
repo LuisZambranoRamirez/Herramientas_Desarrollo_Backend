@@ -1,36 +1,36 @@
-name: Python Tests
+name: FastAPI Automated Tests
 
-# Define cuándo se ejecutarán las pruebas
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ main, master, develop ]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: [ main, master ]
 
 jobs:
-  run-tests:
+  test:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Descarga el código del repositorio en el servidor de GitHub
-    - name: Checkout de códigoqi
+    # 1. Clonar el código en el servidor de GitHub
+    - name: Checkout code
       uses: actions/checkout@v4
 
-    # 2. Configura la versión de Python que usa tu proyecto
-    - name: Configurar Python
-      uses: actions/actions-setup@v3  # Nota: En entornos de producción reales se usa actions/setup-python
+    # 2. Configurar la versión de Python
+    - name: Set up Python
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.11' # Cambia esto por tu versión de Python (ej. '3.10', '3.12')
+        cache: 'pip'           # Guarda en caché las dependencias para que corra más rápido
 
-    # 3. Instala las dependencias y el framework de pruebas
-    - name: Instalar dependencias
+    # 3. Instalar dependencias
+    - name: Install dependencies
       run: |
-        python -m pip upgrade pip
-        pip install pytest
-        # Si tienes un archivo requirements.txt, descomenta la línea de abajo:
-        # pip install -r requirements.txt
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        # Asegúrate de tener pytest e httpx instalados (necesarios para probar FastAPI)
+        pip install pytest httpx 
 
-    # 4. Ejecuta los tests automáticamente
-    - name: Ejecutar pruebas con Pytest
+    # 4. Ejecutar los tests con pytest
+    - name: Run tests
       run: |
         pytest

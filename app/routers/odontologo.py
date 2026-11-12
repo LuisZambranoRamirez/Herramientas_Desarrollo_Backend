@@ -8,14 +8,17 @@ from app.core.dependencies import get_current_user
 from app.schemas.odontologo import (
     OdontologoCreate,
     OdontologoUpdate,
-    OdontologoResponse
+    OdontologoResponse,
+    HorarioResponse,
 )
 from app.services import odontologo as odontologo_service
 
 router = APIRouter(prefix="/odontologos", tags=["Odontólogos"])
 
 @router.get("/especialidades", response_model=List[str])
-def listar_especialidades():
+def listar_especialidades(
+    current_user: Usuario = Depends(get_current_user)
+):
     """
     Retorna la lista de todas las especialidades odontológicas disponibles.
     """
@@ -26,6 +29,7 @@ def listar_odontologos(
     especialidad: Optional[str] = Query(None, description="Filtrar por especialidad"),
     activo: Optional[bool] = Query(None, description="Filtrar por estado activo"),
     query: Optional[str] = Query(None, description="Búsqueda por nombre, apellido, DNI o colegiatura"),
+    current_user: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -46,6 +50,7 @@ def obtener_mi_perfil_odontologo(
 @router.get("/{dni}", response_model=OdontologoResponse)
 def obtener_odontologo_por_dni(
     dni: str,
+    current_user: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -90,3 +95,26 @@ def cambiar_estado_odontologo(
     Solo para Administradores.
     """
     return odontologo_service.cambiar_estado_odontologo(db, dni, activo, current_user)
+
+@router.get("/{dni}/horarios", response_model=List[HorarioResponse])
+def listar_horarios_odontologo(
+    dni: str,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Lista todos los horarios configurados de un odontólogo por su DNI.
+    """
+    return odontologo_service.listar_horarios_odontologo(db, dni)
+
+@router.get("/{dni}/horarios/{dia}", response_model=List[HorarioResponse])
+def listar_horarios_odontologo_por_dia(
+    dni: str,
+    dia: str,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Lista los horarios de un odontólogo para un día específico de la semana.
+    """
+    return odontologo_service.listar_horarios_odontologo_por_dia(db, dni, dia)

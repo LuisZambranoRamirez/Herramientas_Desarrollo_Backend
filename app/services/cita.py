@@ -1,5 +1,6 @@
-from datetime import datetime, date
-from typing import List, Optional
+import uuid
+from datetime import datetime, date, timezone
+from typing import List, Optional, Union
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
@@ -11,6 +12,19 @@ from app.models.models import (
     Odontologo,
 )
 from app.schemas.cita import CitaCreate, CitaEstadoUpdate, CitaUpdate
+
+
+def _parse_cita_id(cita_id: Union[uuid.UUID, str]) -> uuid.UUID:
+    """Convierte y valida el identificador de cita a UUID."""
+    if isinstance(cita_id, uuid.UUID):
+        return cita_id
+    try:
+        return uuid.UUID(str(cita_id))
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El identificador de la cita no tiene un formato UUID válido",
+        )
 
 
 def format_cita_response(cita: Cita) -> dict:
@@ -34,8 +48,8 @@ def format_cita_response(cita: Cita) -> dict:
         )
         odontologo_data = {
             "dni": cita.odontologo.dni,
-            "nombres": cita.odontologo.nombres,
-            "apellidos": cita.odontologo.apellidos,
+            "nombres": cita.odontologo.nombres or "",
+            "apellidos": cita.odontologo.apellidos or "",
             "especialidad": esp,
             "colegiatura": cita.odontologo.colegiatura,
         }
@@ -155,12 +169,19 @@ def agendar_cita(db: Session, data: CitaCreate, current_user: Usuario) -> dict:
         motivo_consulta=data.motivo_consulta,
         diagnostico=(data.diagnostico or None),
         estado=EstadoCitaEnum.PROGRAMADA,
-        fecha_registro=datetime.utcnow(),
+        fecha_registro=datetime.now(timezone.utc),
     )
 
-    db.add(nueva_cita)
-    db.commit()
-    db.refresh(nueva_cita)
+    try:
+        db.add(nueva_cita)
+        db.commit()
+        db.refresh(nueva_cita)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al agendar la cita: {str(e)}",
+        )
 
     # ✅ Recargar con relaciones para que format_cita_response traiga paciente/odontologo
     nueva_cita = (
@@ -249,9 +270,12 @@ def listar_citas(
     return [format_cita_response(c) for c in citas]
 
 
-def obtener_detalle_cita(db: Session, cita_id: str, current_user: Usuario) -> dict:
+def obtener_detalle_cita(
+    db: Session, cita_id: Union[uuid.UUID, str], current_user: Usuario
+) -> dict:
+    cita_uuid = _parse_cita_id(cita_id)
     cita = (
-        _query_citas_con_relaciones(db).filter(Cita.cita_id == cita_id).first()
+        _query_citas_con_relaciones(db).filter(Cita.cita_id == cita_uuid).first()
     )
     if not cita:
         raise HTTPException(
@@ -274,9 +298,13 @@ def obtener_detalle_cita(db: Session, cita_id: str, current_user: Usuario) -> di
 
 
 def actualizar_estado_cita(
-    db: Session, cita_id: str, data: CitaEstadoUpdate, current_user: Usuario
+    db: Session,
+    cita_id: Union[uuid.UUID, str],
+    data: CitaEstadoUpdate,
+    current_user: Usuario,
 ) -> dict:
-    cita = db.query(Cita).filter(Cita.cita_id == cita_id).first()
+    cita_uuid = _parse_cita_id(cita_id)
+    cita = db.query(Cita).filter(Cita.cita_id == cita_uuid).first()
     if not cita:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Cita no encontrada"
@@ -317,13 +345,16 @@ def actualizar_estado_cita(
     db.refresh(cita)
 
     cita = (
-        _query_citas_con_relaciones(db).filter(Cita.cita_id == cita_id).first()
+        _query_citas_con_relaciones(db).filter(Cita.cita_id == cita_uuid).first()
     )
     return format_cita_response(cita)
 
 
-def cancelar_cita(db: Session, cita_id: str, current_user: Usuario) -> dict:
-    cita = db.query(Cita).filter(Cita.cita_id == cita_id).first()
+def cancelar_cita(
+    db: Session, cita_id: Union[uuid.UUID, str], current_user: Usuario
+) -> dict:
+    cita_uuid = _parse_cita_id(cita_id)
+    cita = db.query(Cita).filter(Cita.cita_id == cita_uuid).first()
     if not cita:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Cita no encontrada"
@@ -347,13 +378,16 @@ def cancelar_cita(db: Session, cita_id: str, current_user: Usuario) -> dict:
     db.refresh(cita)
 
     cita = (
-        _query_citas_con_relaciones(db).filter(Cita.cita_id == cita_id).first()
+        _query_citas_con_relaciones(db).filter(Cita.cita_id == cita_uuid).first()
     )
     return format_cita_response(cita)
 
 
 def actualizar_cita(
-    db: Session, cita_id: str, data: CitaUpdate, current_user: Usuario
+    db: Session,
+    cita_id: Union[uuid.UUID, str],
+    data: CitaUpdate,
+    current_user: Usuario,
 ) -> dict:
     """Edita / reprograma una cita. Solo personal (administrador u odontólogo)."""
     if current_user.user_role == "PACIENTE":
@@ -362,15 +396,25 @@ def actualizar_cita(
             detail="Los pacientes no pueden modificar citas; solo cancelarlas",
         )
 
-    cita = db.query(Cita).filter(Cita.cita_id == cita_id).first()
+    cita_uuid = _parse_cita_id(cita_id)
+    cita = db.query(Cita).filter(Cita.cita_id == cita_uuid).first()
     if not cita:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Cita no encontrada"
         )
 
+    nuevo_paciente = data.dni_paciente or cita.dni_paciente
     nuevo_odontologo = data.dni_odontologo or cita.dni_odontologo
     nueva_fecha = data.fecha or cita.fecha
     nueva_hora = data.hora if data.hora is not None else cita.hora
+
+    if data.dni_paciente and not db.query(Paciente).filter(
+        Paciente.dni == data.dni_paciente
+    ).first():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No existe ningún paciente con DNI {data.dni_paciente}",
+        )
 
     if data.dni_odontologo and not db.query(Odontologo).filter(
         Odontologo.dni == data.dni_odontologo
@@ -383,7 +427,7 @@ def actualizar_cita(
     # ✅ CORREGIDO: manejar Enum correctamente
     if data.estado:
         try:
-            estado_final = EstadoCitaEnum(data.estado.upper())
+            estado_final = EstadoCitaEnum(data.estado.strip().upper())
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -414,6 +458,7 @@ def actualizar_cita(
                 detail="El odontólogo ya tiene una cita programada para esa fecha y hora",
             )
 
+    cita.dni_paciente = nuevo_paciente
     cita.dni_odontologo = nuevo_odontologo
     cita.fecha = nueva_fecha
     cita.hora = nueva_hora
@@ -423,9 +468,16 @@ def actualizar_cita(
     if data.diagnostico is not None:
         cita.diagnostico = data.diagnostico or None
 
-    db.commit()
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al actualizar la cita: {str(e)}",
+        )
     db.expire_all()
     cita = (
-        _query_citas_con_relaciones(db).filter(Cita.cita_id == cita_id).first()
+        _query_citas_con_relaciones(db).filter(Cita.cita_id == cita_uuid).first()
     )
     return format_cita_response(cita)

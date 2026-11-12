@@ -9,8 +9,8 @@ from app.models.models import Usuario
 from app.core.dependencies import get_current_user
 from app.schemas.cita import (
     CitaCreate,
-    CitaEstadoUpdate,
     CitaUpdate,
+    CitaEstadoUpdate,
     CitaResponse,
     OdontologoSimpleResponse
 )
@@ -19,7 +19,10 @@ from app.services import cita as cita_service
 router = APIRouter(prefix="/citas", tags=["Citas Odontológicas"])
 
 @router.get("/odontologos", response_model=List[OdontologoSimpleResponse])
-def listar_odontologos_disponibles(db: Session = Depends(get_db)):
+def listar_odontologos_disponibles(
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     Lista todos los odontólogos registrados y activos para seleccionar al agendar citas.
     """
@@ -81,7 +84,7 @@ def obtener_detalle_cita(
     """Obtiene los datos detallados de una cita."""
     return cita_service.obtener_detalle_cita(db, cita_id, current_user)
 
-@router.put("/{cita_id}", response_model=CitaResponse)
+@router.put("/{cita_id}", response_model=CitaResponse, status_code=status.HTTP_200_OK)
 def actualizar_cita(
     cita_id: uuid.UUID,
     data: CitaUpdate,
@@ -89,10 +92,11 @@ def actualizar_cita(
     db: Session = Depends(get_db)
 ):
     """
-    Edita o reprograma una cita (odontólogo, fecha, hora, motivo, estado, diagnóstico).
-    Solo para Administradores y Odontólogos.
+    Actualiza o reprograma una cita odontológica existente.
+    Solo accesible para Administradores y Odontólogos.
     """
     return cita_service.actualizar_cita(db, cita_id, data, current_user)
+
 
 @router.patch("/{cita_id}/estado", response_model=CitaResponse)
 def actualizar_estado_cita(

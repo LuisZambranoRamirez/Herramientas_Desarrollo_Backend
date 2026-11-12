@@ -1,4 +1,6 @@
-from datetime import datetime
+import re
+import uuid
+from datetime import datetime, time
 from typing import Optional, Union, Any, List
 from pydantic import BaseModel, ConfigDict, field_validator
 
@@ -10,10 +12,28 @@ class OdontologoBase(BaseModel):
     colegiatura: str
     especialidad: str
 
+    @field_validator("telefono")
+    @classmethod
+    def validar_telefono(cls, v: str) -> str:
+        if v:
+            v = v.strip()
+            if not re.fullmatch(r"^\d{9}$", v):
+                raise ValueError("El teléfono debe contener exactamente 9 dígitos numéricos.")
+        return v
+
 class OdontologoCreate(OdontologoBase):
     dni: str
     username: str
     password: str
+
+    @field_validator("dni")
+    @classmethod
+    def validar_dni(cls, v: str) -> str:
+        if v:
+            v = v.strip()
+            if not re.fullmatch(r"^\d{8}$", v):
+                raise ValueError("El DNI debe contener exactamente 8 dígitos numéricos.")
+        return v
 
 class OdontologoUpdate(BaseModel):
     nombres: Optional[str] = None
@@ -23,6 +43,15 @@ class OdontologoUpdate(BaseModel):
     colegiatura: Optional[str] = None
     especialidad: Optional[str] = None
     activo: Optional[bool] = None
+
+    @field_validator("telefono")
+    @classmethod
+    def validar_telefono(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            v = v.strip()
+            if v and not re.fullmatch(r"^\d{9}$", v):
+                raise ValueError("El teléfono debe contener exactamente 9 dígitos numéricos.")
+        return v
 
 class OdontologoResponse(OdontologoBase):
     dni: str
@@ -45,3 +74,27 @@ class OdontologoResponse(OdontologoBase):
         if isinstance(v, datetime):
             return v.isoformat()
         return v
+
+
+class HorarioResponse(BaseModel):
+    horario_odontologo_id: uuid.UUID
+    dni: str
+    dia_semana: str
+    hora_inicio: Union[time, str]
+    hora_fin: Union[time, str]
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("dia_semana", mode="before")
+    @classmethod
+    def serialize_dia_semana(cls, v: Any) -> str:
+        if hasattr(v, "value"):
+            return str(v.value)
+        return str(v)
+
+    @field_validator("hora_inicio", "hora_fin", mode="before")
+    @classmethod
+    def serialize_time(cls, v: Any) -> str:
+        if isinstance(v, time):
+            return v.strftime("%H:%M:%S")
+        return str(v)
