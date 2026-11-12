@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from fastapi import HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.models import Usuario, Paciente, UserRoleEnum
 from app.schemas.auth import LoginRequest, RegistroPaciente
@@ -8,7 +8,16 @@ from app.core.security import verify_password, get_password_hash, create_access_
 
 def iniciar_sesion(db: Session, credentials: LoginRequest) -> dict:
     """Valida las credenciales y genera el token de acceso del usuario."""
-    user = db.query(Usuario).filter(Usuario.username == credentials.username).first()
+    # Consulta optimizada con carga ansiosa para evitar que las relaciones lleguen vacías
+    user = (
+        db.query(Usuario)
+        .options(
+            joinedload(Usuario.odontologo),
+            joinedload(Usuario.paciente)
+        )
+        .filter(Usuario.username == credentials.username)
+        .first()
+    )
 
     if not user or not verify_password(credentials.password, user.password):
         raise HTTPException(
