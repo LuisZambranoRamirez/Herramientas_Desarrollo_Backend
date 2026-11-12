@@ -147,7 +147,14 @@ def actualizar_odontologo(db: Session, dni: str, data: OdontologoUpdate, current
 
     if current_user.user_role != UserRoleEnum.SYSTEM_ADMIN and odontologo.username != current_user.username:
         raise HTTPException(status_code=403, detail="No tienes permiso para modificar los datos de este odontólogo")
-
+    
+    if current_user.user_role != UserRoleEnum.SYSTEM_ADMIN:
+        if data.colegiatura is not None or data.especialidad is not None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Solo los administradores pueden modificar la colegiatura y especialidad"
+            )
+        
     if data.correo and data.correo != odontologo.correo:
         if db.query(Personal).filter(Personal.correo == data.correo, Personal.dni != dni).first():
             raise HTTPException(status_code=400, detail="El correo electrónico ya está registrado por otro personal")
