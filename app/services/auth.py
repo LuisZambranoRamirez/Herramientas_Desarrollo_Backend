@@ -33,11 +33,16 @@ def iniciar_sesion(db: Session, credentials: LoginRequest) -> dict:
         )
 
     role_str = user.user_role.value if hasattr(user.user_role, "value") else str(user.user_role)
-    token = create_access_token(data={"sub": user.username, "user_role": role_str})
+    token = create_access_token(data={
+        "sub": user.username,
+        "user_role": role_str,
+        "role": role_str,
+    })
 
     return {
         "accessToken": token,
-        "user": user
+        "user": user,
+        "role": role_str,
     }
 
 def registrar_paciente(db: Session, data: RegistroPaciente) -> dict:
@@ -113,10 +118,15 @@ def registrar_paciente(db: Session, data: RegistroPaciente) -> dict:
             detail="Ocurrió un error interno al registrar el paciente."
         )
 
-    token = create_access_token(data={"sub": new_user.username, "user_role": "PACIENTE"})
+    token = create_access_token(data={
+        "sub": new_user.username,
+        "user_role": "PACIENTE",
+        "role": "PACIENTE",
+    })
 
     return {
         "message": "Paciente registrado exitosamente",
         "accessToken": token,
-        "user": new_user
+        "user": new_user,
+        "role": "PACIENTE",
     }

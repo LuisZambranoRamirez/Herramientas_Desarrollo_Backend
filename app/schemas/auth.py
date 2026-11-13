@@ -1,7 +1,7 @@
 import re
 from datetime import date, datetime
 from typing import Union, Any, Optional
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from app.core.security import verify_password, get_password_hash
 
 # Esquema para la solicitud de inicio de sesión
@@ -13,6 +13,7 @@ class LoginRequest(BaseModel):
 class UserResponse(BaseModel):
     username: str
     user_role: str
+    role: Optional[str] = None
     activo: bool
     fecha_registro: Union[datetime, str]
 
@@ -32,15 +33,29 @@ class UserResponse(BaseModel):
             return v.isoformat()
         return v
 
+    @model_validator(mode="after")
+    def sync_role(self) -> "UserResponse":
+        if not self.role and self.user_role:
+            self.role = self.user_role
+        return self
+
 # Esquema de respuesta para POST /api/auth/login
 class LoginResponse(BaseModel):
     accessToken: str
     user: UserResponse
+    role: Optional[str] = None
+
+    @model_validator(mode="after")
+    def sync_role(self) -> "LoginResponse":
+        if not self.role and self.user:
+            self.role = self.user.role or self.user.user_role
+        return self
 
 # Esquema para datos contenidos en el token
 class TokenPayload(BaseModel):
     sub: Optional[str] = None
     user_role: Optional[str] = None
+    role: Optional[str] = None
     exp: Optional[int] = None
 
 # Esquema para registro de paciente
@@ -54,6 +69,17 @@ class RegistroPaciente(BaseModel):
     correo: str
     fecha_nacimiento: Union[date, str]
     direccion: Optional[str] = None
+    role: Optional[str] = None
+    user_role: Optional[str] = None
+
+    @field_validator("role", "user_role")
+    @classmethod
+    def validar_no_inyeccion_rol(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            clean = v.strip().upper()
+            if clean in ("ADMIN", "SYSTEM_ADMIN", "ODONTOLOGO", "DOCTOR"):
+                raise ValueError("No está permitido asignar roles con privilegios durante el registro público.")
+        return v
 
     @field_validator("dni")
     @classmethod
@@ -78,3 +104,10 @@ class RegistroPacienteResponse(BaseModel):
     message: str = "Paciente registrado exitosamente"
     accessToken: Optional[str] = None
     user: UserResponse
+    role: Optional[str] = None
+
+    @model_validator(mode="after")
+    def sync_role(self) -> "RegistroPacienteResponse":
+        if not self.role and self.user:
+            self.role = self.user.role or self.user.user_role
+        return self
