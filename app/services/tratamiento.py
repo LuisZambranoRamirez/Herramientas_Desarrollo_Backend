@@ -28,11 +28,16 @@ def listar_tratamientos(
 ) -> List[TratamientoPaciente]:
     query = db.query(TratamientoPaciente)
 
-    role_val = current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
     if role_val == "PACIENTE":
         pac = db.query(Paciente).filter(Paciente.username == current_user.username).first()
         if not pac:
             return []
+        if paciente_dni and paciente_dni != pac.dni:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes permisos suficientes para realizar esta acción"
+            )
         query = query.filter(TratamientoPaciente.dni_paciente == pac.dni)
     elif role_val == "ODONTOLOGO":
         odont = db.query(Odontologo).filter(Odontologo.username == current_user.username).first()
@@ -55,22 +60,22 @@ def obtener_tratamiento_por_id(db: Session, tratamiento_id: uuid.UUID, current_u
             detail="Tratamiento no encontrado."
         )
 
-    role_val = current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
     if role_val == "PACIENTE":
         pac = db.query(Paciente).filter(Paciente.username == current_user.username).first()
         if not pac or pac.dni != trat.dni_paciente:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="No tienes permiso para ver este tratamiento."
+                detail="No tienes permisos suficientes para realizar esta acción"
             )
     return trat
 
 def crear_tratamiento(db: Session, data: TratamientoCreate, current_user: Usuario) -> TratamientoPaciente:
-    role_val = current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)
-    if role_val not in ("SYSTEM_ADMIN", "ODONTOLOGO"):
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN", "ODONTOLOGO"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Solo administradores u odontólogos pueden crear tratamientos."
+            detail="No tienes permisos suficientes para realizar esta acción"
         )
 
     pac = db.query(Paciente).filter(Paciente.dni == data.dni_paciente).first()
@@ -112,11 +117,11 @@ def crear_tratamiento(db: Session, data: TratamientoCreate, current_user: Usuari
 def actualizar_tratamiento(db: Session, tratamiento_id: uuid.UUID, data: TratamientoUpdate, current_user: Usuario) -> TratamientoPaciente:
     trat = obtener_tratamiento_por_id(db, tratamiento_id, current_user)
 
-    role_val = current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)
-    if role_val not in ("SYSTEM_ADMIN", "ODONTOLOGO"):
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN", "ODONTOLOGO"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Solo administradores u odontólogos pueden modificar tratamientos."
+            detail="No tienes permisos suficientes para realizar esta acción"
         )
 
     if data.observaciones is not None:
@@ -146,11 +151,11 @@ def listar_agenda(db: Session, tratamiento_id: uuid.UUID, current_user: Usuario)
     ).all()
 
 def crear_agenda(db: Session, data: AgendaTratamientoCreate, current_user: Usuario) -> AgendaTratamientos:
-    role_val = current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)
-    if role_val not in ("SYSTEM_ADMIN", "ODONTOLOGO"):
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN", "ODONTOLOGO"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Solo administradores u odontólogos pueden agendar sesiones de tratamiento."
+            detail="No tienes permisos suficientes para realizar esta acción"
         )
 
     trat = db.query(TratamientoPaciente).filter(

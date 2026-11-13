@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.models import Usuario
-from app.core.dependencies import get_current_user
+from app.models.models import Usuario, UserRoleEnum
+from app.core.dependencies import get_current_user, require_roles
 from app.schemas.insumo import (
     InsumoCreate,
     InsumoUpdate,
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/insumos", tags=["Insumos"])
 
 @router.get("", response_model=List[InsumoResponse])
 def listar_insumos(
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN, UserRoleEnum.ODONTOLOGO)),
     db: Session = Depends(get_db)
 ):
     """Lista todos los insumos médicos del inventario."""
@@ -29,7 +29,7 @@ def listar_insumos(
 
 @router.get("/stock-bajo", response_model=List[InsumoResponse])
 def listar_insumos_stock_bajo(
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN, UserRoleEnum.ODONTOLOGO)),
     db: Session = Depends(get_db)
 ):
     """Lista los insumos que están por debajo o igual a su stock mínimo."""
@@ -37,7 +37,7 @@ def listar_insumos_stock_bajo(
 
 @router.get("/consumos", response_model=List[ConsumoInsumosResponse])
 def listar_consumos(
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN, UserRoleEnum.ODONTOLOGO)),
     db: Session = Depends(get_db)
 ):
     """Lista el historial de consumos de insumos."""
@@ -46,7 +46,7 @@ def listar_consumos(
 @router.post("/consumos", response_model=ConsumoInsumosResponse, status_code=status.HTTP_201_CREATED)
 def registrar_consumo(
     data: ConsumoInsumosCreate,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN, UserRoleEnum.ODONTOLOGO)),
     db: Session = Depends(get_db)
 ):
     """Registra el consumo de insumo en una sesión de tratamiento y descuenta stock."""
@@ -54,7 +54,7 @@ def registrar_consumo(
 
 @router.get("/compras", response_model=List[InsumoCompradoResponse])
 def listar_todas_las_compras(
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN)),
     db: Session = Depends(get_db)
 ):
     """Lista el historial general de compras de insumos."""
@@ -63,7 +63,7 @@ def listar_todas_las_compras(
 @router.post("/compras", response_model=InsumoCompradoResponse, status_code=status.HTTP_201_CREATED)
 def registrar_compra(
     data: InsumoCompradoCreate,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN)),
     db: Session = Depends(get_db)
 ):
     """Registra una compra a proveedor y añade unidades al stock del insumo."""
@@ -72,7 +72,7 @@ def registrar_compra(
 @router.get("/{insumo_id}", response_model=InsumoResponse)
 def obtener_insumo(
     insumo_id: uuid.UUID,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN, UserRoleEnum.ODONTOLOGO)),
     db: Session = Depends(get_db)
 ):
     """Obtiene el detalle de un insumo."""
@@ -81,7 +81,7 @@ def obtener_insumo(
 @router.post("", response_model=InsumoResponse, status_code=status.HTTP_201_CREATED)
 def crear_insumo(
     data: InsumoCreate,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN)),
     db: Session = Depends(get_db)
 ):
     """Crea un nuevo insumo (Solo administradores)."""
@@ -91,7 +91,7 @@ def crear_insumo(
 def actualizar_insumo(
     insumo_id: uuid.UUID,
     data: InsumoUpdate,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN)),
     db: Session = Depends(get_db)
 ):
     """Actualiza los datos o existencias de un insumo."""
@@ -100,7 +100,7 @@ def actualizar_insumo(
 @router.delete("/{insumo_id}", status_code=status.HTTP_200_OK)
 def eliminar_insumo(
     insumo_id: uuid.UUID,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN)),
     db: Session = Depends(get_db)
 ):
     """Elimina un insumo si no tiene compras ni consumos registrados."""
@@ -109,7 +109,7 @@ def eliminar_insumo(
 @router.get("/{insumo_id}/compras", response_model=List[InsumoCompradoResponse])
 def listar_compras_insumo(
     insumo_id: uuid.UUID,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN)),
     db: Session = Depends(get_db)
 ):
     """Lista el historial de compras de un insumo específico."""
