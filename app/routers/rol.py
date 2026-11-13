@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, require_roles
 from app.models.models import UserRoleEnum, Usuario
 from app.schemas.rol import RolePermisoCreate, RolePermisoUpdate, RoleResponse
 from app.services import rol as rol_service
@@ -11,26 +11,9 @@ from app.services import rol as rol_service
 router = APIRouter(prefix="/roles", tags=["Roles y Permisos"])
 
 
-def require_system_admin(
-    current_user: Usuario = Depends(get_current_user),
-) -> Usuario:
-    """Valida que el usuario autenticado tenga rol SYSTEM_ADMIN."""
-    role_val = (
-        current_user.user_role.value
-        if hasattr(current_user.user_role, "value")
-        else str(current_user.user_role)
-    )
-    if role_val != UserRoleEnum.SYSTEM_ADMIN.value:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Solo los administradores (SYSTEM_ADMIN) tienen acceso a la gestión de roles y permisos.",
-        )
-    return current_user
-
-
 @router.get("", response_model=List[RoleResponse])
 def listar_roles(
-    current_user: Usuario = Depends(require_system_admin),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN)),
     db: Session = Depends(get_db),
 ):
     """
@@ -43,7 +26,7 @@ def listar_roles(
 @router.get("/{role}", response_model=RoleResponse)
 def obtener_detalle_rol(
     role: str,
-    current_user: Usuario = Depends(require_system_admin),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN)),
     db: Session = Depends(get_db),
 ):
     """
@@ -56,7 +39,7 @@ def obtener_detalle_rol(
 @router.post("", response_model=RoleResponse, status_code=status.HTTP_201_CREATED)
 def asignar_permisos_rol(
     data: RolePermisoCreate,
-    current_user: Usuario = Depends(require_system_admin),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN)),
     db: Session = Depends(get_db),
 ):
     """
@@ -70,7 +53,7 @@ def asignar_permisos_rol(
 def actualizar_permisos_rol(
     role: str,
     data: RolePermisoUpdate,
-    current_user: Usuario = Depends(require_system_admin),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN)),
     db: Session = Depends(get_db),
 ):
     """

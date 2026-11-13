@@ -42,11 +42,11 @@ def obtener_pago_por_id(db: Session, pago_id: uuid.UUID, current_user: Usuario) 
     return pago
 
 def registrar_pago(db: Session, data: PagoCreate, current_user: Usuario) -> Pago:
-    role_val = current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)
-    if role_val != "SYSTEM_ADMIN":
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Solo administradores pueden registrar pagos."
+            detail="No tienes permisos suficientes para realizar esta acción"
         )
 
     trat = db.query(TratamientoPaciente).filter(

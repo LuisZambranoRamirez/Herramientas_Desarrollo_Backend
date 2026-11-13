@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.models import Usuario
-from app.core.dependencies import get_current_user
+from app.models.models import Usuario, UserRoleEnum
+from app.core.dependencies import get_current_user, require_roles
 from app.schemas.proveedor import ProveedorCreate, ProveedorUpdate, ProveedorResponse
 from app.services import proveedor as proveedor_service
 
@@ -12,7 +12,7 @@ router = APIRouter(prefix="/proveedores", tags=["Proveedores"])
 
 @router.get("", response_model=List[ProveedorResponse])
 def listar_proveedores(
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN, UserRoleEnum.ODONTOLOGO)),
     db: Session = Depends(get_db)
 ):
     """Lista todos los proveedores registrados."""
@@ -21,7 +21,7 @@ def listar_proveedores(
 @router.get("/{ruc}", response_model=ProveedorResponse)
 def obtener_proveedor(
     ruc: str,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN, UserRoleEnum.ODONTOLOGO)),
     db: Session = Depends(get_db)
 ):
     """Obtiene los datos de un proveedor por su RUC."""
@@ -30,7 +30,7 @@ def obtener_proveedor(
 @router.post("", response_model=ProveedorResponse, status_code=status.HTTP_201_CREATED)
 def crear_proveedor(
     data: ProveedorCreate,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN)),
     db: Session = Depends(get_db)
 ):
     """Registra un nuevo proveedor (Solo administradores)."""
@@ -40,7 +40,7 @@ def crear_proveedor(
 def actualizar_proveedor(
     ruc: str,
     data: ProveedorUpdate,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN)),
     db: Session = Depends(get_db)
 ):
     """Actualiza la información de un proveedor."""
@@ -49,7 +49,7 @@ def actualizar_proveedor(
 @router.delete("/{ruc}", status_code=status.HTTP_200_OK)
 def eliminar_proveedor(
     ruc: str,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN)),
     db: Session = Depends(get_db)
 ):
     """Elimina un proveedor si no tiene historial de compras registrado."""

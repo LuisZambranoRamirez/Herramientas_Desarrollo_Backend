@@ -24,9 +24,25 @@ class TratamientoCreate(BaseModel):
     @field_validator("precio")
     @classmethod
     def validar_precio(cls, v: float) -> float:
-        if v < 0:
-            raise ValueError("El precio no puede ser negativo.")
+        if v <= 0:
+            raise ValueError("El precio del tratamiento debe ser mayor a cero.")
         return v
+
+    @field_validator("observaciones")
+    @classmethod
+    def validar_observaciones(cls, v: str) -> str:
+        clean = v.strip()
+        if not clean:
+            raise ValueError("Las observaciones clínicas son obligatorias.")
+        return clean
+
+    @field_validator("tratamiento")
+    @classmethod
+    def validar_tratamiento(cls, v: str) -> str:
+        clean = v.strip()
+        if not clean:
+            raise ValueError("El tipo de tratamiento es obligatorio.")
+        return clean
 
 class TratamientoUpdate(BaseModel):
     observaciones: Optional[str] = None
@@ -37,8 +53,18 @@ class TratamientoUpdate(BaseModel):
     @field_validator("precio")
     @classmethod
     def validar_precio(cls, v: Optional[float]) -> Optional[float]:
-        if v is not None and v < 0:
-            raise ValueError("El precio no puede ser negativo.")
+        if v is not None and v <= 0:
+            raise ValueError("El precio del tratamiento debe ser mayor a cero.")
+        return v
+
+    @field_validator("observaciones")
+    @classmethod
+    def validar_observaciones(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            clean = v.strip()
+            if not clean:
+                raise ValueError("Las observaciones clínicas no pueden estar vacías.")
+            return clean
         return v
 
 class TratamientoResponse(BaseModel):

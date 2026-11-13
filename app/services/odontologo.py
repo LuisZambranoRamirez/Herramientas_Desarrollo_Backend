@@ -79,8 +79,12 @@ def obtener_odontologo_por_dni(db: Session, dni: str) -> dict:
     return format_odontologo_response(odontologo)
 
 def registrar_odontologo(db: Session, data: OdontologoCreate, current_user: Usuario) -> dict:
-    if current_user.user_role != UserRoleEnum.SYSTEM_ADMIN:
-        raise HTTPException(status_code=403, detail="Solo los administradores pueden registrar nuevos odontólogos")
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos suficientes para realizar esta acción"
+        )
 
     if db.query(Personal).filter(Personal.dni == data.dni).first():
         raise HTTPException(status_code=400, detail="El DNI ya se encuentra registrado en el sistema")
@@ -145,10 +149,15 @@ def actualizar_odontologo(db: Session, dni: str, data: OdontologoUpdate, current
     if not odontologo:
         raise HTTPException(status_code=404, detail=f"Odontólogo con DNI {dni} no encontrado")
 
-    if current_user.user_role != UserRoleEnum.SYSTEM_ADMIN and odontologo.username != current_user.username:
-        raise HTTPException(status_code=403, detail="No tienes permiso para modificar los datos de este odontólogo")
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    is_admin = role_val in ("SYSTEM_ADMIN", "ADMIN")
+    if not is_admin and odontologo.username != current_user.username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos suficientes para realizar esta acción"
+        )
     
-    if current_user.user_role != UserRoleEnum.SYSTEM_ADMIN:
+    if not is_admin:
         if data.colegiatura is not None or data.especialidad is not None:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -195,8 +204,12 @@ def actualizar_odontologo(db: Session, dni: str, data: OdontologoUpdate, current
     return format_odontologo_response(odontologo)
 
 def cambiar_estado_odontologo(db: Session, dni: str, activo: bool, current_user: Usuario) -> dict:
-    if current_user.user_role != UserRoleEnum.SYSTEM_ADMIN:
-        raise HTTPException(status_code=403, detail="Solo los administradores pueden cambiar el estado del odontólogo")
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos suficientes para realizar esta acción"
+        )
 
     odontologo = db.query(Odontologo).filter(Odontologo.dni == dni).first()
     if not odontologo:

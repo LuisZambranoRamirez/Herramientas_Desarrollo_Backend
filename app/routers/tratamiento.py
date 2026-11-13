@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.models import Usuario
-from app.core.dependencies import get_current_user
+from app.models.models import Usuario, UserRoleEnum
+from app.core.dependencies import get_current_user, require_roles
 from app.schemas.tratamiento import (
     TratamientoCreate,
     TratamientoUpdate,
@@ -57,7 +57,7 @@ def obtener_tratamiento(
 @router.post("", response_model=TratamientoResponse, status_code=status.HTTP_201_CREATED)
 def crear_tratamiento(
     data: TratamientoCreate,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN, UserRoleEnum.ODONTOLOGO)),
     db: Session = Depends(get_db)
 ):
     """Registra un nuevo plan de tratamiento para un paciente."""
@@ -67,7 +67,7 @@ def crear_tratamiento(
 def actualizar_tratamiento(
     tratamiento_id: uuid.UUID,
     data: TratamientoUpdate,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN, UserRoleEnum.ODONTOLOGO)),
     db: Session = Depends(get_db)
 ):
     """Actualiza observaciones, precio, tipo o estado de un tratamiento."""
@@ -85,7 +85,7 @@ def listar_agenda(
 @router.post("/agenda", response_model=AgendaTratamientoResponse, status_code=status.HTTP_201_CREATED)
 def crear_agenda(
     data: AgendaTratamientoCreate,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN, UserRoleEnum.ODONTOLOGO)),
     db: Session = Depends(get_db)
 ):
     """Agrega una sesión recurrente o fecha a la agenda del tratamiento."""
