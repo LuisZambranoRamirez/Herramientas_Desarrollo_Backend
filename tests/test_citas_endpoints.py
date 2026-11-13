@@ -116,7 +116,7 @@ def test_endpoint_agendar_cita(
 
     payload = {
         "dni_odontologo": "87654321",
-        "fecha": "2026-11-10",
+        "fecha": "2026-11-20",
         "hora": "10:30:00",
         "motivo_consulta": "Dolor dental",
         "diagnostico": None
@@ -143,7 +143,7 @@ def test_endpoint_agendar_cita_conflicto(
 
     payload = {
         "dni_odontologo": "87654321",
-        "fecha": "2026-11-10",
+        "fecha": "2026-11-20",
         "hora": "10:30:00",
         "motivo_consulta": "Dolor dental"
     }
