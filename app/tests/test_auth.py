@@ -54,7 +54,7 @@ def test_login_fallido(client):
 def test_registro_paciente_exitoso(client):
     payload = {
         "username": "nuevopaciente",
-        "password": "clave_segura123",
+        "password": "ClaveSegura123",
         "dni": "12345678",
         "nombres": "Juan",
         "apellidos": "Perez",
@@ -78,6 +78,46 @@ def test_registro_paciente_exitoso(client):
     assert data["user"]["user_role"] == "PACIENTE"
     assert data["user"]["activo"] is True
     assert "accessToken" in data
+
+
+def test_registro_paciente_password_debil_rechazado(client):
+    for weak_pw in ["123456", "password", "solident", "SOLIDENT123", "Solident"]:
+        payload = {
+            "username": f"user_{weak_pw}",
+            "password": weak_pw,
+            "dni": "87654321",
+            "nombres": "Pedro",
+            "apellidos": "Gomez",
+            "telefono": "987654322",
+            "correo": "pedro@example.com",
+            "fecha_nacimiento": "1998-03-20",
+        }
+        response = client.post("/api/auth/register", json=payload)
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_registro_paciente_password_valida_clinica2026(client):
+    payload = {
+        "username": "paciente_clinica",
+        "password": "Clinica2026",
+        "dni": "77889900",
+        "nombres": "Ana",
+        "apellidos": "Torres",
+        "telefono": "987654323",
+        "correo": "ana@example.com",
+        "fecha_nacimiento": "1992-10-10",
+    }
+    response = client.post("/api/auth/register", json=payload)
+    assert response.status_code == status.HTTP_201_CREATED
+    assert response.json()["user"]["username"] == "paciente_clinica"
+
+    # Verificar que puede iniciar sesión con la contraseña válida
+    login_res = client.post(
+        "/api/auth/login",
+        json={"username": "paciente_clinica", "password": "Clinica2026"},
+    )
+    assert login_res.status_code == status.HTTP_200_OK
+    assert "accessToken" in login_res.json()
 
 
 def test_obtener_perfil_me(client, db_session):

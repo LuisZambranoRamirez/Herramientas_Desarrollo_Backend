@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional, Union, Any
 from pydantic import BaseModel, ConfigDict, field_validator
+from app.core.security import validar_password_segura
 
 
 class UsuarioResponse(BaseModel):
@@ -39,6 +40,11 @@ class UsuarioCreate(BaseModel):
     correo: Optional[str] = None
     telefono: Optional[str] = None
 
+    @field_validator("password")
+    @classmethod
+    def validar_password(cls, v: str) -> str:
+        return validar_password_segura(v)
+
 
 class UsuarioUpdate(BaseModel):
     user_role: Optional[str] = None
@@ -47,3 +53,10 @@ class UsuarioUpdate(BaseModel):
     correo: Optional[str] = None
     telefono: Optional[str] = None
     password: Optional[str] = None
+
+    @field_validator("password")
+    @classmethod
+    def validar_password(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            return validar_password_segura(v)
+        return v

@@ -2,7 +2,7 @@ import re
 from datetime import date, datetime
 from typing import Union, Any, Optional
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
-from app.core.security import verify_password, get_password_hash
+from app.core.security import verify_password, get_password_hash, validar_password_segura
 
 # Esquema para la solicitud de inicio de sesión
 class LoginRequest(BaseModel):
@@ -71,6 +71,11 @@ class RegistroPaciente(BaseModel):
     direccion: Optional[str] = None
     role: Optional[str] = None
     user_role: Optional[str] = None
+
+    @field_validator("password")
+    @classmethod
+    def validar_password(cls, v: str) -> str:
+        return validar_password_segura(v)
 
     @field_validator("role", "user_role")
     @classmethod
