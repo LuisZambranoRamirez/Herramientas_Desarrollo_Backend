@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.models import Usuario
-from app.core.dependencies import get_current_user
+from app.models.models import Usuario, UserRoleEnum
+from app.core.dependencies import get_current_user, require_roles
 from app.schemas.usuario import UsuarioCreate, UsuarioUpdate, UsuarioResponse
 from app.services import usuario as usuario_service
 
@@ -13,11 +13,11 @@ router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
 @router.get("", response_model=List[UsuarioResponse])
 def listar_usuarios(
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN)),
     db: Session = Depends(get_db)
 ):
     """
-    Lista todos los usuarios del sistema.
+    Lista todos los usuarios del sistema (Solo Administradores).
     """
     return usuario_service.listar_usuarios(db, current_user)
 
@@ -37,11 +37,11 @@ def obtener_usuario(
 @router.post("", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED)
 def crear_usuario(
     data: UsuarioCreate,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN)),
     db: Session = Depends(get_db)
 ):
     """
-    Crea un nuevo usuario en la plataforma.
+    Crea un nuevo usuario en la plataforma (Solo Administradores).
     """
     return usuario_service.crear_usuario(db, data, current_user)
 
@@ -62,11 +62,11 @@ def actualizar_usuario(
 @router.patch("/{username}/toggle-status", response_model=UsuarioResponse)
 def toggle_status(
     username: str,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN)),
     db: Session = Depends(get_db)
 ):
     """
-    Alterna el estado activo/inactivo de un usuario.
+    Alterna el estado activo/inactivo de un usuario (Solo Administradores).
     """
     return usuario_service.toggle_status_usuario(db, username, current_user)
 
@@ -74,7 +74,7 @@ def toggle_status(
 @router.delete("/{username}", status_code=status.HTTP_200_OK)
 def desactivar_usuario(
     username: str,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN)),
     db: Session = Depends(get_db)
 ):
     """

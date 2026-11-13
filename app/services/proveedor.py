@@ -7,9 +7,21 @@ from app.models.models import Proveedor, InsumoComprado, Usuario
 from app.schemas.proveedor import ProveedorCreate, ProveedorUpdate
 
 def listar_proveedores(db: Session, current_user: Usuario) -> List[Proveedor]:
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN", "ODONTOLOGO"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos suficientes para realizar esta acción"
+        )
     return db.query(Proveedor).order_by(Proveedor.nombre.asc()).all()
 
 def obtener_proveedor_por_ruc(db: Session, ruc: str, current_user: Usuario) -> Proveedor:
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN", "ODONTOLOGO"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos suficientes para realizar esta acción"
+        )
     prov = db.query(Proveedor).filter(Proveedor.ruc == ruc).first()
     if not prov:
         raise HTTPException(
@@ -19,11 +31,11 @@ def obtener_proveedor_por_ruc(db: Session, ruc: str, current_user: Usuario) -> P
     return prov
 
 def crear_proveedor(db: Session, data: ProveedorCreate, current_user: Usuario) -> Proveedor:
-    role_val = current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)
-    if role_val != "SYSTEM_ADMIN":
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Solo administradores pueden registrar proveedores."
+            detail="No tienes permisos suficientes para realizar esta acción"
         )
 
     if db.query(Proveedor).filter(Proveedor.ruc == data.ruc).first():
@@ -52,11 +64,11 @@ def crear_proveedor(db: Session, data: ProveedorCreate, current_user: Usuario) -
         )
 
 def actualizar_proveedor(db: Session, ruc: str, data: ProveedorUpdate, current_user: Usuario) -> Proveedor:
-    role_val = current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)
-    if role_val != "SYSTEM_ADMIN":
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Solo administradores pueden modificar proveedores."
+            detail="No tienes permisos suficientes para realizar esta acción"
         )
 
     prov = obtener_proveedor_por_ruc(db, ruc, current_user)
@@ -78,11 +90,11 @@ def actualizar_proveedor(db: Session, ruc: str, data: ProveedorUpdate, current_u
         )
 
 def eliminar_proveedor(db: Session, ruc: str, current_user: Usuario) -> dict:
-    role_val = current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)
-    if role_val != "SYSTEM_ADMIN":
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Solo administradores pueden eliminar proveedores."
+            detail="No tienes permisos suficientes para realizar esta acción"
         )
 
     prov = obtener_proveedor_por_ruc(db, ruc, current_user)

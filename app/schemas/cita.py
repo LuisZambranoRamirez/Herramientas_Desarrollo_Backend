@@ -32,6 +32,21 @@ class CitaCreate(BaseModel):
     dni_paciente: Optional[str] = None  # Opcional: si el usuario es paciente se toma de su sesión
     diagnostico: Optional[str] = None
 
+    @field_validator("fecha")
+    @classmethod
+    def validar_fecha_no_pasada(cls, v: date) -> date:
+        if v < date.today():
+            raise ValueError("No se pueden agendar citas en fechas pasadas.")
+        return v
+
+    @field_validator("motivo_consulta")
+    @classmethod
+    def validar_motivo_consulta(cls, v: str) -> str:
+        clean = v.strip()
+        if len(clean) < 3:
+            raise ValueError("El motivo de consulta debe tener al menos 3 caracteres.")
+        return clean
+
     @field_validator("dni_odontologo", "dni_paciente")
     @classmethod
     def validar_dnis(cls, v: Optional[str]) -> Optional[str]:

@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.models import Usuario
-from app.core.dependencies import get_current_user
+from app.models.models import Usuario, UserRoleEnum
+from app.core.dependencies import get_current_user, require_roles
 from app.schemas.pago import PagoCreate, PagoResponse
 from app.services import pago as pago_service
 
@@ -41,7 +41,7 @@ def obtener_pago(
 @router.post("", response_model=PagoResponse, status_code=status.HTTP_201_CREATED)
 def registrar_pago(
     data: PagoCreate,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN)),
     db: Session = Depends(get_db)
 ):
     """Registra un nuevo pago (Solo administradores)."""

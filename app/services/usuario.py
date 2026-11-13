@@ -39,10 +39,13 @@ def _to_usuario_response(u: Usuario) -> UsuarioResponse:
 
 
 def listar_usuarios(db: Session, current_user: Usuario) -> List[UsuarioResponse]:
-    """Lista todos los usuarios del sistema cargando relaciones eficientemente."""
-    # Recomendación: Validar permisos de administrador si aplica
-    # if current_user.user_role != UserRoleEnum.ADMIN:
-    #     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acceso denegado.")
+    """Lista todos los usuarios del sistema (Solo administradores)."""
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos suficientes para realizar esta acción"
+        )
 
     usuarios = (
         db.query(Usuario)
@@ -57,7 +60,14 @@ def listar_usuarios(db: Session, current_user: Usuario) -> List[UsuarioResponse]
 
 
 def obtener_usuario(db: Session, username: str, current_user: Usuario) -> UsuarioResponse:
-    """Obtiene el detalle de un usuario por su username."""
+    """Obtiene el detalle de un usuario por su username (Solo admin o propio usuario)."""
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN") and current_user.username != username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos suficientes para realizar esta acción"
+        )
+
     usuario = (
         db.query(Usuario)
         .options(
@@ -76,7 +86,14 @@ def obtener_usuario(db: Session, username: str, current_user: Usuario) -> Usuari
 
 
 def crear_usuario(db: Session, data: UsuarioCreate, current_user: Usuario) -> UsuarioResponse:
-    """Crea un nuevo usuario en la base de datos."""
+    """Crea un nuevo usuario en la base de datos (Solo administradores)."""
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos suficientes para realizar esta acción"
+        )
+
     clean_username = data.username.strip()
     existente = db.query(Usuario).filter(Usuario.username == clean_username).first()
     if existente:

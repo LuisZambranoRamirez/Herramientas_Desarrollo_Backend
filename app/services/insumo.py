@@ -8,12 +8,24 @@ from app.models.models import Insumo, InsumoComprado, ConsumoInsumos, Proveedor,
 from app.schemas.insumo import InsumoCreate, InsumoUpdate, InsumoCompradoCreate, ConsumoInsumosCreate
 
 def listar_insumos(db: Session, current_user: Usuario, stock_bajo: bool = False) -> List[Insumo]:
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN", "ODONTOLOGO"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos suficientes para realizar esta acción"
+        )
     query = db.query(Insumo)
     if stock_bajo:
         query = query.filter(Insumo.stock <= Insumo.stock_minimo)
     return query.order_by(Insumo.nombre.asc()).all()
 
 def obtener_insumo_por_id(db: Session, insumo_id: uuid.UUID, current_user: Usuario) -> Insumo:
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN", "ODONTOLOGO"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos suficientes para realizar esta acción"
+        )
     insumo = db.query(Insumo).filter(Insumo.insumo_id == insumo_id).first()
     if not insumo:
         raise HTTPException(
@@ -23,11 +35,11 @@ def obtener_insumo_por_id(db: Session, insumo_id: uuid.UUID, current_user: Usuar
     return insumo
 
 def crear_insumo(db: Session, data: InsumoCreate, current_user: Usuario) -> Insumo:
-    role_val = current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)
-    if role_val != "SYSTEM_ADMIN":
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Solo administradores pueden crear insumos."
+            detail="No tienes permisos suficientes para realizar esta acción"
         )
 
     existente = db.query(Insumo).filter(Insumo.nombre == data.nombre).first()
@@ -58,11 +70,11 @@ def crear_insumo(db: Session, data: InsumoCreate, current_user: Usuario) -> Insu
         )
 
 def actualizar_insumo(db: Session, insumo_id: uuid.UUID, data: InsumoUpdate, current_user: Usuario) -> Insumo:
-    role_val = current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)
-    if role_val != "SYSTEM_ADMIN":
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Solo administradores pueden modificar insumos."
+            detail="No tienes permisos suficientes para realizar esta acción"
         )
 
     insumo = obtener_insumo_por_id(db, insumo_id, current_user)
@@ -88,11 +100,11 @@ def actualizar_insumo(db: Session, insumo_id: uuid.UUID, data: InsumoUpdate, cur
         )
 
 def eliminar_insumo(db: Session, insumo_id: uuid.UUID, current_user: Usuario) -> dict:
-    role_val = current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)
-    if role_val != "SYSTEM_ADMIN":
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Solo administradores pueden eliminar insumos."
+            detail="No tienes permisos suficientes para realizar esta acción"
         )
 
     insumo = obtener_insumo_por_id(db, insumo_id, current_user)
@@ -128,17 +140,23 @@ def eliminar_insumo(db: Session, insumo_id: uuid.UUID, current_user: Usuario) ->
     return {"message": f"Insumo '{insumo.nombre}' eliminado exitosamente."}
 
 def listar_compras(db: Session, insumo_id: Optional[uuid.UUID], current_user: Usuario) -> List[InsumoComprado]:
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos suficientes para realizar esta acción"
+        )
     query = db.query(InsumoComprado)
     if insumo_id:
         query = query.filter(InsumoComprado.id_insumo == insumo_id)
     return query.order_by(InsumoComprado.fecha_registro.desc()).all()
 
 def registrar_compra(db: Session, data: InsumoCompradoCreate, current_user: Usuario) -> InsumoComprado:
-    role_val = current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)
-    if role_val != "SYSTEM_ADMIN":
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Solo administradores pueden registrar compras de insumos."
+            detail="No tienes permisos suficientes para realizar esta acción"
         )
 
     insumo = db.query(Insumo).filter(Insumo.insumo_id == data.id_insumo).first()
@@ -179,14 +197,20 @@ def registrar_compra(db: Session, data: InsumoCompradoCreate, current_user: Usua
         )
 
 def listar_consumos(db: Session, current_user: Usuario) -> List[ConsumoInsumos]:
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN", "ODONTOLOGO"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos suficientes para realizar esta acción"
+        )
     return db.query(ConsumoInsumos).all()
 
 def registrar_consumo(db: Session, data: ConsumoInsumosCreate, current_user: Usuario) -> ConsumoInsumos:
-    role_val = current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)
-    if role_val not in ("SYSTEM_ADMIN", "ODONTOLOGO"):
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN", "ODONTOLOGO"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Solo administradores u odontólogos pueden registrar consumo de insumos."
+            detail="No tienes permisos suficientes para realizar esta acción"
         )
 
     insumo = db.query(Insumo).filter(Insumo.insumo_id == data.id_insumo).first()

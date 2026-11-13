@@ -238,7 +238,13 @@ def listar_citas(
 ) -> List[dict]:
     query = _query_citas_con_relaciones(db)
 
-    if current_user.user_role == "PACIENTE":
+    role_val = (
+        current_user.user_role.value
+        if hasattr(current_user.user_role, "value")
+        else str(current_user.user_role)
+    ).upper()
+
+    if role_val == "PACIENTE":
         paciente = (
             db.query(Paciente)
             .filter(Paciente.username == current_user.username)
@@ -246,6 +252,11 @@ def listar_citas(
         )
         if not paciente:
             return []
+        if dni_paciente and dni_paciente != paciente.dni:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes permisos suficientes para realizar esta acción",
+            )
         query = query.filter(Cita.dni_paciente == paciente.dni)
     else:
         if dni_paciente:
@@ -282,7 +293,13 @@ def obtener_detalle_cita(
             status_code=status.HTTP_404_NOT_FOUND, detail="Cita no encontrada"
         )
 
-    if current_user.user_role == "PACIENTE":
+    role_val = (
+        current_user.user_role.value
+        if hasattr(current_user.user_role, "value")
+        else str(current_user.user_role)
+    ).upper()
+
+    if role_val == "PACIENTE":
         paciente = (
             db.query(Paciente)
             .filter(Paciente.username == current_user.username)
@@ -291,7 +308,7 @@ def obtener_detalle_cita(
         if not paciente or cita.dni_paciente != paciente.dni:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="No tienes permiso para ver esta cita",
+                detail="No tienes permisos suficientes para realizar esta acción",
             )
 
     return format_cita_response(cita)
@@ -310,7 +327,13 @@ def actualizar_estado_cita(
             status_code=status.HTTP_404_NOT_FOUND, detail="Cita no encontrada"
         )
 
-    if current_user.user_role == "PACIENTE":
+    role_val = (
+        current_user.user_role.value
+        if hasattr(current_user.user_role, "value")
+        else str(current_user.user_role)
+    ).upper()
+
+    if role_val == "PACIENTE":
         paciente = (
             db.query(Paciente)
             .filter(Paciente.username == current_user.username)
@@ -319,7 +342,7 @@ def actualizar_estado_cita(
         if not paciente or cita.dni_paciente != paciente.dni:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="No tienes permiso para modificar esta cita",
+                detail="No tienes permisos suficientes para realizar esta acción",
             )
         # ✅ CORREGIDO: comparar con Enum
         if data.estado.upper() != EstadoCitaEnum.CANCELADA.value:
@@ -360,7 +383,13 @@ def cancelar_cita(
             status_code=status.HTTP_404_NOT_FOUND, detail="Cita no encontrada"
         )
 
-    if current_user.user_role == "PACIENTE":
+    role_val = (
+        current_user.user_role.value
+        if hasattr(current_user.user_role, "value")
+        else str(current_user.user_role)
+    ).upper()
+
+    if role_val == "PACIENTE":
         paciente = (
             db.query(Paciente)
             .filter(Paciente.username == current_user.username)
@@ -369,7 +398,7 @@ def cancelar_cita(
         if not paciente or cita.dni_paciente != paciente.dni:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="No tienes permiso para cancelar esta cita",
+                detail="No tienes permisos suficientes para realizar esta acción",
             )
 
     # ✅ CORREGIDO: asignar Enum, no .value
@@ -390,10 +419,16 @@ def actualizar_cita(
     current_user: Usuario,
 ) -> dict:
     """Edita / reprograma una cita. Solo personal (administrador u odontólogo)."""
-    if current_user.user_role == "PACIENTE":
+    role_val = (
+        current_user.user_role.value
+        if hasattr(current_user.user_role, "value")
+        else str(current_user.user_role)
+    ).upper()
+
+    if role_val == "PACIENTE":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Los pacientes no pueden modificar citas; solo cancelarlas",
+            detail="No tienes permisos suficientes para realizar esta acción",
         )
 
     cita_uuid = _parse_cita_id(cita_id)

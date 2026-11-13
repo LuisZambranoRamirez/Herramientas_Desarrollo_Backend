@@ -29,10 +29,11 @@ def listar_pacientes(
     query: Optional[str] = None,
     activo: Optional[bool] = None
 ) -> List[dict]:
-    if current_user.user_role not in [UserRoleEnum.SYSTEM_ADMIN, UserRoleEnum.ODONTOLOGO]:
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN", "ODONTOLOGO"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tienes permisos para ver el listado de pacientes"
+            detail="No tienes permisos suficientes para realizar esta acción"
         )
 
     q = db.query(Paciente).join(Usuario, Paciente.username == Usuario.username)
@@ -71,19 +72,21 @@ def obtener_paciente_por_dni(db: Session, dni: str, current_user: Usuario) -> di
             detail=f"Paciente con DNI {dni} no encontrado"
         )
 
-    if current_user.user_role == UserRoleEnum.PACIENTE and paciente.username != current_user.username:
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val == "PACIENTE" and paciente.username != current_user.username:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tienes permiso para consultar información de otro paciente"
+            detail="No tienes permisos suficientes para realizar esta acción"
         )
 
     return format_paciente_response(paciente)
 
 def registrar_paciente(db: Session, data: PacienteCreate, current_user: Usuario) -> dict:
-    if current_user.user_role not in [UserRoleEnum.SYSTEM_ADMIN, UserRoleEnum.ODONTOLOGO]:
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN", "ODONTOLOGO"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Solo personal autorizado puede dar de alta a nuevos pacientes"
+            detail="No tienes permisos suficientes para realizar esta acción"
         )
 
     if db.query(Paciente).filter(Paciente.dni == data.dni).first():
@@ -140,8 +143,12 @@ def actualizar_paciente(db: Session, dni: str, data: PacienteUpdate, current_use
     if not paciente:
         raise HTTPException(status_code=404, detail=f"Paciente con DNI {dni} no encontrado")
 
-    if current_user.user_role == UserRoleEnum.PACIENTE and paciente.username != current_user.username:
-        raise HTTPException(status_code=403, detail="No tienes permiso para modificar los datos de otro paciente")
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val == "PACIENTE" and paciente.username != current_user.username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos suficientes para realizar esta acción"
+        )
 
     if data.correo and data.correo != paciente.correo:
         if db.query(Paciente).filter(Paciente.correo == data.correo, Paciente.dni != dni).first():
@@ -164,8 +171,12 @@ def actualizar_paciente(db: Session, dni: str, data: PacienteUpdate, current_use
     return format_paciente_response(paciente)
 
 def desactivar_paciente(db: Session, dni: str, current_user: Usuario) -> dict:
-    if current_user.user_role != UserRoleEnum.SYSTEM_ADMIN:
-        raise HTTPException(status_code=403, detail="Solo los administradores pueden desactivar pacientes")
+    role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
+    if role_val not in ("SYSTEM_ADMIN", "ADMIN"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos suficientes para realizar esta acción"
+        )
 
     paciente = db.query(Paciente).filter(Paciente.dni == dni).first()
     if not paciente:

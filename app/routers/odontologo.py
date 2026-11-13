@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.models import Usuario
-from app.core.dependencies import get_current_user
+from app.models.models import Usuario, UserRoleEnum
+from app.core.dependencies import get_current_user, require_roles
 from app.schemas.odontologo import (
     OdontologoCreate,
     OdontologoUpdate,
@@ -61,7 +61,7 @@ def obtener_odontologo_por_dni(
 @router.post("", response_model=OdontologoResponse, status_code=status.HTTP_201_CREATED)
 def registrar_odontologo(
     data: OdontologoCreate,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN)),
     db: Session = Depends(get_db)
 ):
     """
@@ -74,7 +74,7 @@ def registrar_odontologo(
 def actualizar_odontologo(
     dni: str,
     data: OdontologoUpdate,
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN, UserRoleEnum.ODONTOLOGO)),
     db: Session = Depends(get_db)
 ):
     """
@@ -87,7 +87,7 @@ def actualizar_odontologo(
 def cambiar_estado_odontologo(
     dni: str,
     activo: bool = Query(..., description="Estado activo o inactivo"),
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN)),
     db: Session = Depends(get_db)
 ):
     """
