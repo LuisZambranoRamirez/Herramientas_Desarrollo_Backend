@@ -132,7 +132,7 @@ def registrar_paciente(db: Session, data: PacienteCreate, current_user: Usuario)
         db.commit()
         db.refresh(new_user)
         db.refresh(new_paciente)
-    except Exception:
+    except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al registrar paciente: {str(e)}")
 

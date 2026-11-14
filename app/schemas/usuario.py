@@ -14,6 +14,9 @@ class UsuarioResponse(BaseModel):
     nombre_completo: Optional[str] = None
     correo: Optional[str] = None
     telefono: Optional[str] = None
+    especialidad: Optional[str] = None
+    colegiatura: Optional[str] = None
+    descripcion: Optional[str] = None
     ultimo_acceso: Optional[Union[datetime, str]] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -76,8 +79,8 @@ class UsuarioCreate(BaseModel):
                 return None
             if len(clean) < 2 or len(clean) > 100:
                 raise ValueError("El nombre completo debe tener entre 2 y 100 caracteres.")
-            if not re.fullmatch(r"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$", clean):
-                raise ValueError("El nombre solo debe contener letras y espacios.")
+            if not re.fullmatch(r"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s.]+$", clean):
+                raise ValueError("El nombre solo debe contener letras, puntos y espacios.")
             return clean
         return v
 
@@ -142,8 +145,8 @@ class UsuarioUpdate(BaseModel):
                 return None
             if len(clean) < 2 or len(clean) > 100:
                 raise ValueError("El nombre completo debe tener entre 2 y 100 caracteres.")
-            if not re.fullmatch(r"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$", clean):
-                raise ValueError("El nombre solo debe contener letras y espacios.")
+            if not re.fullmatch(r"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s.]+$", clean):
+                raise ValueError("El nombre solo debe contener letras, puntos y espacios.")
             return clean
         return v
 
@@ -186,3 +189,68 @@ class CambiarRolRequest(BaseModel):
         if clean not in ("SYSTEM_ADMIN", "ODONTOLOGO", "PACIENTE"):
             raise ValueError(f"El rol '{v}' no es válido. Debe ser SYSTEM_ADMIN, ODONTOLOGO o PACIENTE.")
         return clean
+
+
+class PerfilUpdateRequest(BaseModel):
+    """
+    Esquema exclusivo para que el usuario autenticado actualice sus propios
+    datos personales y de contacto sin posibilidad de elevar su rol ni alterar su estado.
+    """
+    nombre_completo: Optional[str] = None
+    correo: Optional[str] = None
+    telefono: Optional[str] = None
+    especialidad: Optional[str] = None
+    descripcion: Optional[str] = None
+
+    model_config = ConfigDict(extra="ignore")
+
+    @field_validator("nombre_completo")
+    @classmethod
+    def validar_nombre_completo(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            clean = v.strip()
+            if not clean:
+                return None
+            if len(clean) < 2 or len(clean) > 100:
+                raise ValueError("El nombre completo debe tener entre 2 y 100 caracteres.")
+            if not re.fullmatch(r"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s.]+$", clean):
+                raise ValueError("El nombre solo debe contener letras, puntos y espacios.")
+            return clean
+        return v
+
+    @field_validator("correo")
+    @classmethod
+    def validar_correo(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            clean = v.strip().lower()
+            if not clean:
+                return None
+            if not re.fullmatch(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", clean):
+                raise ValueError("El formato del correo electrónico no es válido.")
+            return clean
+        return v
+
+    @field_validator("telefono")
+    @classmethod
+    def validar_telefono(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            clean = v.strip()
+            if not clean:
+                return None
+            if not re.fullmatch(r"^\d{9}$", clean):
+                raise ValueError("El teléfono debe contener exactamente 9 dígitos numéricos.")
+            return clean
+        return v
+
+    @field_validator("especialidad")
+    @classmethod
+    def validar_especialidad(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            clean = v.strip()
+            if not clean:
+                return None
+            return clean
+        return v
+
+
+UsuarioMeUpdate = PerfilUpdateRequest

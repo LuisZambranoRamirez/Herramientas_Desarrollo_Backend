@@ -15,19 +15,33 @@ from app.models.models import (
     EstadoCitaEnum,
 )
 from app.core.security import get_password_hash
-from app.schemas.usuario import UsuarioCreate, UsuarioUpdate, UsuarioResponse
+from app.schemas.usuario import (
+    UsuarioCreate,
+    UsuarioUpdate,
+    UsuarioResponse,
+    PerfilUpdateRequest,
+)
 
 
 def _to_usuario_response(u: Usuario) -> UsuarioResponse:
     nombre_completo = None
     correo = None
     telefono = None
+    especialidad = None
+    colegiatura = None
+    descripcion = None
 
     if getattr(u, "odontologo", None):
         odon = u.odontologo
         nombre_completo = f"{odon.nombres} {odon.apellidos}".strip()
         correo = odon.correo
         telefono = odon.telefono
+        colegiatura = odon.colegiatura
+        esp_val = odon.especialidad.value if hasattr(odon.especialidad, "value") else str(odon.especialidad)
+        especialidad = esp_val
+        descripcion = f"Especialista en {esp_val.replace('_', ' ').capitalize()}."
+        if colegiatura:
+            descripcion = f"Especialista en {esp_val.replace('_', ' ').capitalize()} - Colegiatura {colegiatura}."
     elif getattr(u, "paciente", None):
         pac = u.paciente
         nombre_completo = f"{pac.nombres} {pac.apellidos}".strip()
@@ -44,6 +58,9 @@ def _to_usuario_response(u: Usuario) -> UsuarioResponse:
         nombre_completo=nombre_completo or u.username,
         correo=correo,
         telefono=telefono,
+        especialidad=especialidad,
+        colegiatura=colegiatura,
+        descripcion=descripcion,
         ultimo_acceso=None
     )
 
@@ -303,6 +320,155 @@ def _asegurar_perfil_consistente(
                     target.correo = correo.strip().lower() if correo.strip() else None
                 if telefono is not None:
                     target.telefono = telefono.strip() if telefono.strip() else None
+
+
+def obtener_perfil_me(db: Session, current_user: Usuario) -> UsuarioResponse:
+    """
+    Retorna la ficha y datos personales del usuario conectado actualmente (me).
+    No requiere permisos de administrador.
+    """
+    usuario = (
+        db.query(Usuario)
+        .options(
+            joinedload(Usuario.odontologo),
+            joinedload(Usuario.paciente)
+        )
+        .filter(Usuario.username == current_user.username)
+        .first()
+    )
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado en la base de datos."
+        )
+
+    if not usuario.odontologo and not usuario.paciente:
+        _asegurar_perfil_consistente(db, usuario)
+        try:
+            db.commit()
+            db.refresh(usuario)
+        except Exception:
+            db.rollback()
+
+    return _to_usuario_response(usuario)
+
+
+def actualizar_perfil_me(db: Session, data: PerfilUpdateRequest, current_user: Usuario) -> UsuarioResponse:
+    """
+    Permite a cualquier usuario autenticado actualizar sus propios datos personales
+    y de contacto (y especialidad si es odontólogo). No permite cambiar rol ni estado activo.
+    """
+    usuario = (
+        db.query(Usuario)
+        .options(
+            joinedload(Usuario.odontologo),
+            joinedload(Usuario.paciente)
+        )
+        .filter(Usuario.username == current_user.username)
+        .first()
+    )
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado en la base de datos."
+        )
+
+    clean_correo = data.correo.strip().lower() if data.correo and data.correo.strip() else None
+    clean_tel = data.telefono.strip() if data.telefono and data.telefono.strip() else None
+
+    # Validar duplicados de correo en la base de datos
+    if clean_correo:
+        if usuario.paciente:
+            otro_p = db.query(Paciente).filter(Paciente.correo == clean_correo, Paciente.dni != usuario.paciente.dni).first()
+            if otro_p:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="El correo electrónico ya se encuentra registrado por otro usuario."
+                )
+        if usuario.odontologo:
+            otro_per = db.query(Personal).filter(Personal.correo == clean_correo, Personal.dni != usuario.odontologo.dni).first()
+            if otro_per:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="El correo electrónico ya se encuentra registrado por otro especialista."
+                )
+
+    # Validar duplicados de teléfono en la base de datos
+    if clean_tel:
+        if usuario.paciente:
+            otro_tp = db.query(Paciente).filter(Paciente.telefono == clean_tel, Paciente.dni != usuario.paciente.dni).first()
+            if otro_tp:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="El número de teléfono ya se encuentra registrado por otro usuario."
+                )
+        if usuario.odontologo:
+            otro_tper = db.query(Personal).filter(Personal.telefono == clean_tel, Personal.dni != usuario.odontologo.dni).first()
+            if otro_tper:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="El número de teléfono ya se encuentra registrado por otro especialista."
+                )
+
+    # Actualizar según el tipo de perfil existente
+    if usuario.user_role == UserRoleEnum.ODONTOLOGO:
+        if not usuario.odontologo:
+            _asegurar_perfil_consistente(
+                db=db,
+                usuario=usuario,
+                nombre_completo=data.nombre_completo,
+                correo=clean_correo,
+                telefono=clean_tel,
+                especialidad=data.especialidad,
+            )
+        else:
+            if data.nombre_completo:
+                n, a = _separar_nombre_completo(data.nombre_completo, usuario.username)
+                usuario.odontologo.nombres = n
+                usuario.odontologo.apellidos = a
+            if clean_correo:
+                usuario.odontologo.correo = clean_correo
+            if clean_tel:
+                usuario.odontologo.telefono = clean_tel
+            if data.especialidad:
+                clean_esp = data.especialidad.strip().upper()
+                try:
+                    usuario.odontologo.especialidad = EspecialidadEnum(clean_esp)
+                except ValueError:
+                    matched = False
+                    for e in EspecialidadEnum:
+                        if e.value.replace("_", " ").lower() == clean_esp.replace("_", " ").lower():
+                            usuario.odontologo.especialidad = e
+                            matched = True
+                            break
+                    if not matched:
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Especialidad '{data.especialidad}' no es válida."
+                        )
+    else:
+        # Rol PACIENTE o SYSTEM_ADMIN
+        if not usuario.paciente:
+            _asegurar_perfil_consistente(
+                db=db,
+                usuario=usuario,
+                nombre_completo=data.nombre_completo,
+                correo=clean_correo,
+                telefono=clean_tel,
+            )
+        else:
+            if data.nombre_completo:
+                n, a = _separar_nombre_completo(data.nombre_completo, usuario.username)
+                usuario.paciente.nombres = n
+                usuario.paciente.apellidos = a
+            if data.correo is not None:
+                usuario.paciente.correo = clean_correo
+            if data.telefono is not None:
+                usuario.paciente.telefono = clean_tel
+
+    db.commit()
+    db.refresh(usuario)
+    return _to_usuario_response(usuario)
 
 
 def listar_usuarios(db: Session, current_user: Usuario) -> List[UsuarioResponse]:

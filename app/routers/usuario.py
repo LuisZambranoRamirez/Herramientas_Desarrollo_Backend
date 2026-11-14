@@ -11,6 +11,7 @@ from app.schemas.usuario import (
     UsuarioResponse,
     OdontologoPublicResponse,
     CambiarRolRequest,
+    PerfilUpdateRequest,
 )
 from app.services import usuario as usuario_service
 
@@ -39,6 +40,42 @@ def listar_usuarios(
     """
     return usuario_service.listar_usuarios(db, current_user)
 
+
+# ============================================================================
+# RUTAS DE PERFIL PROPIO (/me)
+# Deben declararse obligatoriamente ANTES de /{username} para evitar colisiones
+# ============================================================================
+
+@router.get("/me", response_model=UsuarioResponse)
+def obtener_mi_perfil(
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Retorna el perfil y datos personales del usuario actualmente autenticado.
+    Accesible para todos los roles (PACIENTE, ODONTOLOGO, SYSTEM_ADMIN) sin requerir permisos de administrador.
+    """
+    return usuario_service.obtener_perfil_me(db, current_user)
+
+
+@router.put("/me", response_model=UsuarioResponse)
+@router.patch("/me", response_model=UsuarioResponse)
+def actualizar_mi_perfil(
+    data: PerfilUpdateRequest,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Actualiza los datos personales y de contacto del propio usuario autenticado
+    (y especialidad si es odontólogo). No permite alterar el rol ni el estado activo.
+    Accesible para todos los roles (PACIENTE, ODONTOLOGO, SYSTEM_ADMIN).
+    """
+    return usuario_service.actualizar_perfil_me(db, data, current_user)
+
+
+# ============================================================================
+# RUTAS PARAMÉTRICAS POR {username}
+# ============================================================================
 
 @router.get("/{username}", response_model=UsuarioResponse)
 def obtener_usuario(
