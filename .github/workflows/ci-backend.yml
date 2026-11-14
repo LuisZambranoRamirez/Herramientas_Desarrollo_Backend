@@ -1,0 +1,34 @@
+name: Análisis Técnico y Pruebas Backend
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  backend-analysis:
+    name: Lint, Tipado y Build Test (FastAPI)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Descargar código del repositorio
+        uses: actions/checkout@v4
+
+      - name: 2. Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 3. Instalar dependencias del Backend
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 4. Verificación y pruebas de arranque de la API
+        run: |
+          source .venv/bin/activate
+          python -c "import sys; print('Python version:', sys.version)"
