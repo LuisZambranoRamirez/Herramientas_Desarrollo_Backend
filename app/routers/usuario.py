@@ -5,10 +5,22 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.models import Usuario, UserRoleEnum
 from app.core.dependencies import get_current_user, require_roles
-from app.schemas.usuario import UsuarioCreate, UsuarioUpdate, UsuarioResponse
+from app.schemas.usuario import UsuarioCreate, UsuarioUpdate, UsuarioResponse, OdontologoPublicResponse
 from app.services import usuario as usuario_service
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
+
+
+@router.get("/dentists", response_model=List[OdontologoPublicResponse])
+@router.get("/odontologos/activos", response_model=List[OdontologoPublicResponse])
+def listar_odontologos_activos(
+    db: Session = Depends(get_db)
+):
+    """
+    Retorna la lista pública de odontólogos activos registrados en el sistema.
+    Público: No requiere autenticación.
+    """
+    return usuario_service.listar_odontologos_activos(db)
 
 
 @router.get("", response_model=List[UsuarioResponse])

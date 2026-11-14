@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Optional, Union, Any
 from pydantic import BaseModel, ConfigDict, field_validator
 from app.core.security import validar_password_segura
+from app.schemas.odontologo import OdontologoPublicResponse
 
 
 class UsuarioResponse(BaseModel):

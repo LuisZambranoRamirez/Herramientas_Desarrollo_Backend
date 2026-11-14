@@ -188,3 +188,55 @@ def eliminar_usuario(db: Session, username: str, current_user: Usuario) -> None:
 
     db.delete(usuario)
     db.commit()
+
+
+def listar_odontologos_activos(db: Session) -> List[dict]:
+    """
+    Obtiene únicamente los usuarios con rol 'ODONTOLOGO' y estado activo (activo=True),
+    consultando directamente la fuente de datos donde se gestionan los usuarios del sistema.
+    Público: No requiere autenticación.
+    """
+    usuarios = (
+        db.query(Usuario)
+        .options(joinedload(Usuario.odontologo))
+        .filter(
+            Usuario.user_role == UserRoleEnum.ODONTOLOGO,
+            Usuario.activo == True
+        )
+        .order_by(Usuario.username.asc())
+        .all()
+    )
+
+    resultado = []
+    for u in usuarios:
+        odon = u.odontologo
+        dni = odon.dni if odon else u.username
+        nombres = odon.nombres if odon else u.username
+        apellidos = odon.apellidos if odon else ""
+        nombre_completo = f"{nombres} {apellidos}".strip()
+
+        esp = "Odontología General"
+        if odon and odon.especialidad:
+            esp = odon.especialidad.value if hasattr(odon.especialidad, "value") else str(odon.especialidad)
+
+        colegiatura = odon.colegiatura if odon else None
+        desc = f"Especialista en {esp.replace('_', ' ').capitalize()}."
+        if colegiatura:
+            desc = f"Especialista en {esp.replace('_', ' ').capitalize()} - Colegiatura {colegiatura}."
+
+        resultado.append({
+            "id": dni,
+            "dni": dni,
+            "username": u.username,
+            "nombre": nombre_completo,
+            "nombres": nombres,
+            "apellidos": apellidos,
+            "especialidad": esp,
+            "colegiatura": colegiatura,
+            "correo": odon.correo if odon else None,
+            "telefono": odon.telefono if odon else None,
+            "descripcion": desc,
+            "activo": u.activo,
+        })
+
+    return resultado

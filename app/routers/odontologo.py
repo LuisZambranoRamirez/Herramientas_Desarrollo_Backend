@@ -10,10 +10,21 @@ from app.schemas.odontologo import (
     OdontologoUpdate,
     OdontologoResponse,
     HorarioResponse,
+    OdontologoPublicResponse,
 )
 from app.services import odontologo as odontologo_service
+from app.services import usuario as usuario_service
 
 router = APIRouter(prefix="/odontologos", tags=["Odontólogos"])
+
+@router.get("/activos", response_model=List[OdontologoPublicResponse])
+def listar_odontologos_activos_publico(
+    db: Session = Depends(get_db)
+):
+    """
+    Retorna la lista de odontólogos activos para consumo público sin autenticación.
+    """
+    return usuario_service.listar_odontologos_activos(db)
 
 @router.get("/especialidades", response_model=List[str])
 def listar_especialidades(

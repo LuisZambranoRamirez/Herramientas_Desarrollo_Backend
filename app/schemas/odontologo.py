@@ -130,6 +130,30 @@ class OdontologoResponse(OdontologoBase):
         return v
 
 
+class OdontologoPublicResponse(BaseModel):
+    id: str
+    dni: str
+    username: str
+    nombre: str
+    nombres: str
+    apellidos: str
+    especialidad: str
+    colegiatura: Optional[str] = None
+    correo: Optional[str] = None
+    telefono: Optional[str] = None
+    descripcion: Optional[str] = None
+    activo: bool = True
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("especialidad", mode="before")
+    @classmethod
+    def serialize_especialidad(cls, v: Any) -> str:
+        if hasattr(v, "value"):
+            return str(v.value)
+        return str(v)
+
+
 class HorarioResponse(BaseModel):
     horario_odontologo_id: uuid.UUID
     dni: str
