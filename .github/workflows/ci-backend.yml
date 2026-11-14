@@ -22,7 +22,6 @@ jobs:
           cache: 'pip'
 
       - name: 3. Instalar dependencias del Backend
-        working-directory: ./backend
         run: |
           python -m venv .venv
           source .venv/bin/activate
@@ -30,8 +29,6 @@ jobs:
           pip install -r requirements.txt
 
       - name: 4. Verificación y pruebas de arranque de la API
-        working-directory: ./backend
         run: |
           source .venv/bin/activate
-          # Validación rápida de sintaxis y carga del servidor uvicorn en segundo plano
           python -c "import sys; print('Python version:', sys.version)"
