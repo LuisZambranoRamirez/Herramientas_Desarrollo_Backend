@@ -36,7 +36,7 @@ def listar_pacientes(
             detail="No tienes permisos suficientes para realizar esta acción"
         )
 
-    q = db.query(Paciente).join(Usuario, Paciente.username == Usuario.username)
+    q = db.query(Paciente).join(Usuario, Paciente.username == Usuario.username).filter(Usuario.user_role == UserRoleEnum.PACIENTE)
 
     if query:
         search_filter = f"%{query.strip()}%"

@@ -57,6 +57,16 @@ class UsuarioCreate(BaseModel):
     def validar_password(cls, v: str) -> str:
         return validar_password_segura(v)
 
+    @field_validator("user_role")
+    @classmethod
+    def validar_user_role(cls, v: str) -> str:
+        clean = v.strip().upper()
+        if clean == "ADMIN":
+            clean = "SYSTEM_ADMIN"
+        if clean not in ("SYSTEM_ADMIN", "ODONTOLOGO", "PACIENTE"):
+            raise ValueError(f"El rol '{v}' no es válido. Debe ser SYSTEM_ADMIN, ODONTOLOGO o PACIENTE.")
+        return clean
+
     @field_validator("nombre_completo")
     @classmethod
     def validar_nombre_completo(cls, v: Optional[str]) -> Optional[str]:
@@ -111,6 +121,18 @@ class UsuarioUpdate(BaseModel):
             return validar_password_segura(v)
         return v
 
+    @field_validator("user_role")
+    @classmethod
+    def validar_user_role(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            clean = v.strip().upper()
+            if clean == "ADMIN":
+                clean = "SYSTEM_ADMIN"
+            if clean not in ("SYSTEM_ADMIN", "ODONTOLOGO", "PACIENTE"):
+                raise ValueError(f"El rol '{v}' no es válido. Debe ser SYSTEM_ADMIN, ODONTOLOGO o PACIENTE.")
+            return clean
+        return v
+
     @field_validator("nombre_completo")
     @classmethod
     def validar_nombre_completo(cls, v: Optional[str]) -> Optional[str]:
@@ -148,3 +170,19 @@ class UsuarioUpdate(BaseModel):
                 raise ValueError("El teléfono debe contener exactamente 9 dígitos numéricos.")
             return clean
         return v
+
+
+class CambiarRolRequest(BaseModel):
+    user_role: str
+    especialidad: Optional[str] = None
+    colegiatura: Optional[str] = None
+
+    @field_validator("user_role")
+    @classmethod
+    def validar_rol(cls, v: str) -> str:
+        clean = v.strip().upper()
+        if clean == "ADMIN":
+            clean = "SYSTEM_ADMIN"
+        if clean not in ("SYSTEM_ADMIN", "ODONTOLOGO", "PACIENTE"):
+            raise ValueError(f"El rol '{v}' no es válido. Debe ser SYSTEM_ADMIN, ODONTOLOGO o PACIENTE.")
+        return clean

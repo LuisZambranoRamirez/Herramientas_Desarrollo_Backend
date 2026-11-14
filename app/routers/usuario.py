@@ -5,7 +5,13 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.models import Usuario, UserRoleEnum
 from app.core.dependencies import get_current_user, require_roles
-from app.schemas.usuario import UsuarioCreate, UsuarioUpdate, UsuarioResponse, OdontologoPublicResponse
+from app.schemas.usuario import (
+    UsuarioCreate,
+    UsuarioUpdate,
+    UsuarioResponse,
+    OdontologoPublicResponse,
+    CambiarRolRequest,
+)
 from app.services import usuario as usuario_service
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
@@ -53,9 +59,31 @@ def crear_usuario(
     db: Session = Depends(get_db)
 ):
     """
-    Crea un nuevo usuario en la plataforma (Solo Administradores).
+    Crea un nuevo usuario en la plataforma asegurando datos de contacto y relaciones (Solo Administradores).
     """
     return usuario_service.crear_usuario(db, data, current_user)
+
+
+@router.patch("/{username}/rol", response_model=UsuarioResponse)
+@router.put("/{username}/rol", response_model=UsuarioResponse)
+def cambiar_rol_usuario(
+    username: str,
+    data: CambiarRolRequest,
+    current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN)),
+    db: Session = Depends(get_db)
+):
+    """
+    Cambia el rol de un usuario y sincroniza de forma consistente
+    su perfil y relaciones en la base de datos (Solo Administradores).
+    """
+    return usuario_service.cambiar_rol_usuario(
+        db=db,
+        username=username,
+        nuevo_rol_str=data.user_role,
+        current_user=current_user,
+        especialidad=data.especialidad,
+        colegiatura=data.colegiatura
+    )
 
 
 @router.patch("/{username}", response_model=UsuarioResponse)
@@ -66,7 +94,7 @@ def actualizar_usuario(
     db: Session = Depends(get_db)
 ):
     """
-    Actualiza datos de un usuario existente.
+    Actualiza datos de un usuario existente manteniendo consistencia en sus relaciones.
     """
     return usuario_service.actualizar_usuario(db, username, data, current_user)
 
@@ -84,13 +112,13 @@ def toggle_status(
 
 
 @router.delete("/{username}", status_code=status.HTTP_200_OK)
-def desactivar_usuario(
+def eliminar_usuario(
     username: str,
     current_user: Usuario = Depends(require_roles(UserRoleEnum.SYSTEM_ADMIN)),
     db: Session = Depends(get_db)
 ):
     """
-    Desactiva un usuario del sistema mediante baja lógica (activo = False).
-    Solo para Administradores.
+    Elimina definitivamente un usuario del sistema (Solo Administradores).
+    Impide auto-eliminación y valida citas médicas activas.
     """
-    return usuario_service.desactivar_usuario(db, username, current_user)
+    return usuario_service.eliminar_usuario(db, username, current_user)
