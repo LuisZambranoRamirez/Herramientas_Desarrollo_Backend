@@ -1,5 +1,4 @@
-from datetime import datetime
-from zoneinfo import ZoneInfo
+from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, status
 from sqlalchemy import func
@@ -16,6 +15,8 @@ from app.models.models import (
 )
 from app.schemas.dashboard import DashboardResumenResponse
 
+ZONA_LIMA = timezone(timedelta(hours=-5))
+
 
 def obtener_resumen(db: Session, current_user: Usuario) -> DashboardResumenResponse:
     role_val = (current_user.user_role.value if hasattr(current_user.user_role, "value") else str(current_user.user_role)).upper()
@@ -25,7 +26,7 @@ def obtener_resumen(db: Session, current_user: Usuario) -> DashboardResumenRespo
             detail="No tienes permisos suficientes para realizar esta acción"
         )
 
-    hoy = datetime.now(ZoneInfo("America/Lima")).date()
+    hoy = datetime.now(ZONA_LIMA).date()
 
     citas_hoy = db.query(func.count(Cita.cita_id)).filter(
         Cita.fecha == hoy,
